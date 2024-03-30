@@ -1,0 +1,18 @@
+
+GET http://localhost:5000/Users
+
+###
+
+GET http://localhost:5000/Users/10
+
+### 
+
+POST http://localhost:5000/Users
+Content-Type: application/json
+
+{
+  "username": "CoderNamedNick",
+  "email": "CoolApp@123.com",
+  "password": "super-secret",
+  "birthDate": "04/22/2003"
+}
