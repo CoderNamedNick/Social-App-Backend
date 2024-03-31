@@ -14,10 +14,14 @@ router.get('/', async (req, res) => {
     res.status(500).json({ message: err.message })
   }
 })
-//Getting One
-router.get('/:id', (req, res) => {
-  res.send(req.params.id)
-})
+//gettingbyusername
+router.get('/username/:username', getUserByUsername, (req, res) => {
+  res.send(res.user);
+});
+//getting by id
+router.get('/id/:id', getUserByID, (req, res) => {
+  res.send(res.user.username);
+});
 //Creating one
 router.post('/', async (req, res) => {
   const newUser = new User({
@@ -34,16 +38,61 @@ router.post('/', async (req, res) => {
   }
 });
 //Updating one
-router.patch('/:id', (req, res) => {
-  
+router.patch('/id/:id', getUserByID, async (req, res) => {
+  if (req.body.username != null) {
+    res.user.username = req.body.username
+  }
+  if (req.body.password != null) {
+    res.user.password = req.body.password
+  }
+  try{
+    const updatedUser = await res.user.save()
+    res.json(updatedUser)
+  }
+  catch (err){
+    res.status(400).json({ message: err.message });
+  }
 })
 //deleting one
-router.delete('/:id', (req, res) => {
-  
-})
+router.delete('/id/:id', getUserByID, async (req, res) => {
+  try {
+    const deletedUser = await User.findByIdAndDelete(req.params.id);
+    if (!deletedUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.json({ message: "User deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
 
 
+async function getUserByID(req, res, next) {
+  try {
+    const user = await User.findById(req.params.id)
+    if (!user) {
+      return res.status(404).json({ message: 'Cannot find user' })
+    }
+    res.user = user
+    next()
+  } catch (err) {
+    return res.status(500).json({ message: err.message })
+  }
+}
 
+
+async function getUserByUsername(req, res, next) {
+  try {
+    const user = await User.findOne({ username: req.params.username })
+    if (!user) {
+      return res.status(404).json({ message: 'Cannot find user' })
+    }
+    res.user = user
+    next()
+  } catch (err) {
+    return res.status(500).json({ message: err.message })
+  }
+}
 
 
 
