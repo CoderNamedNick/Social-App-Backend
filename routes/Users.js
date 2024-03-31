@@ -18,6 +18,10 @@ router.get('/', async (req, res) => {
 router.get('/username/:username', getUserByUsername, (req, res) => {
   res.send(res.user);
 });
+//gettingbyusername
+router.get('/email/:email', getUserByemail, (req, res) => {
+  res.send(res.user);
+});
 //getting by id
 router.get('/id/:id', getUserByID, (req, res) => {
   res.send(res.user.username);
@@ -85,7 +89,20 @@ async function getUserByUsername(req, res, next) {
   try {
     const user = await User.findOne({ username: req.params.username })
     if (!user) {
-      return res.status(404).json({ message: 'Cannot find user' })
+      return res.status(404).json({ message: 'Cannot find user with that Username' })
+    }
+    res.user = user
+    next()
+  } catch (err) {
+    return res.status(500).json({ message: err.message })
+  }
+}
+
+async function getUserByemail(req, res, next) {
+  try {
+    const user = await User.findOne({ email: req.params.email })
+    if (!user) {
+      return res.status(404).json({ message: 'Cannot find user with that email' })
     }
     res.user = user
     next()
