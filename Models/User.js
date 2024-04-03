@@ -6,16 +6,19 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true },
   birthDate: { type: String, required: true },
   AccDate: { type: String, default: Date.now },
-  // Add more fields as needed
+  guildsJoined: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Guild' }],
+  parties: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Party' }],
+  travelers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Traveler' }],
+  dailyObjs: [{ type: String, ref: 'DailyObj' }],
+  bios: [{ type: String, ref: 'Bio' }],
+ // classes: [{ type: String, ref: 'Class' }] <= Maybe 
 });
 
-// Middleware to convert email to lowercase before saving
 userSchema.pre('save', function (next) {
-  this.email = this.email.toLowerCase(); // Convert email to lowercase
+  this.email = this.email.toLowerCase();
   next();
 });
 
-// Custom validation middleware to check if the username already exists
 userSchema.pre('save', async function (next) {
   try {
     const existingUser = await this.constructor.findOne({ username: this.username });
