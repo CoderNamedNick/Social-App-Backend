@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Guild = require('../Models/Guild');
+const User = require('../Models/User'); // Import the User model
 
 // Get all guilds
 router.get('/', async (req, res) => {
@@ -24,14 +25,29 @@ router.get('/id/:id', getGuildByID, (req, res) => {
 
 // Create a guild
 router.post('/', async (req, res) => {
-  const newGuild = new Guild({
-    guildName: req.body.guildName,
-    guildOwner: req.body.guildOwner,
-    bio: req.body.bio,
-  });
+  const { guildName, guildOwner, bio } = req.body;
+  
   try {
+    // Check if the guild owner exists
+    const owner = await User.findById(guildOwner);
+    if (!owner) {
+      return res.status(404).json({ message: 'Owner user not found' });
+    }
+    
+    // Create a new guild with the owner's ObjectId
+    const newGuild = new Guild({
+      guildName,
+      guildOwner: owner._id, // Assign owner's ObjectId
+      bio,
+    });
+    
     const savedGuild = await newGuild.save();
-    res.status(201).json(savedGuild);
+
+    // Fetch the saved guild with populated guildOwner
+    const populatedGuild = await Guild.findById(savedGuild._id).populate('guildOwner', 'username');
+    
+    // Send response with the populated guild, including owner's username
+    res.status(201).json(populatedGuild);
   } catch (err) {
     res.status(400).json({ message: err.message });
   }

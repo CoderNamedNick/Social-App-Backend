@@ -2,7 +2,11 @@ const mongoose = require('mongoose');
 
 const guildSchema = new mongoose.Schema({
   guildName: { type: String, required: true, unique: true },
-  guildOwner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  guildOwner: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
   guildDate: { type: Date, default: Date.now },
   joinedTravelers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   bio: { type: String, required: true },
