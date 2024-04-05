@@ -35,3 +35,17 @@ Content-Type: application/json
 ###
 
 DELETE http://localhost:5000/Users/id/6609469809f7b0bbcbb185ac
+
+###
+
+GET http://localhost:5000/Guilds
+
+### 
+
+POST http://localhost:5000/Guilds
+Content-Type: application/json
+
+{
+  "GuildName": "SuperAwesomeGuild",
+
+}
