@@ -1,5 +1,7 @@
 const express = require('express');
 const cors = require('cors');
+const bcrypt = require('bcryptjs'); // Require bcrypt
+const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const userRouter = require('./routes/Users');
 const guildRouter = require('./routes/Guilds'); // Include guild router

@@ -10,9 +10,9 @@ POST http://localhost:5000/Users
 Content-Type: application/json
 
 {
-  "username": "CoderNamedNick",
-  "email": "CoolApp@123.com",
-  "password": "super-secret",
+  "username": "CoderNick",
+  "email": "CoolestApp@123.com",
+  "password": "zxcvbnm",
   "birthDate": "04/22/2003"
 }
 
@@ -46,9 +46,9 @@ POST http://localhost:5000/Guilds
 Content-Type: application/json
 
 {
-  "guildName": "Example Guild4",
+  "guildName": "Example Guild5",
   "guildOwner": "6609469809f7b0bbcbb185ac", 
-  "bio": "This is a description of the guild4."
+  "bio": "This is a description of the guild5."
 }
 
 ###
