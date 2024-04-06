@@ -63,8 +63,22 @@ router.post('/login', async (req, res) => {
     // Generate JWT token
     const token = jwt.sign({ userId: user._id }, 'your_secret_key_here');
 
+    // Additional user information
+    const userWithAdditionalInfo = {
+      id: user._id,
+      username: user.username,
+      email: user.email,
+      AccDate: user.AccDate,
+      guildsJoined: user.guildsJoined,
+      parties: user.parties,
+      travelers: user.travelers,
+      dailyObjs: user.dailyObjs,
+      bios: user.bios,
+      // Add more fields as needed
+    };
+
     // Send token and user info in response
-    res.status(200).json({ token, user: { id: user._id, username: user.username, email: user.email } });
+    res.status(200).json({ token, user: userWithAdditionalInfo });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
