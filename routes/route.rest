@@ -10,10 +10,12 @@ POST http://localhost:5000/Users
 Content-Type: application/json
 
 {
-  "username": "CoderNick",
-  "email": "CoolestApp@123.com",
+  "username": "aaaaaa",
+  "email": "Caaaaapp@123.com",
   "password": "zxcvbnm",
-  "birthDate": "04/22/2003"
+  "birthDate": "04/22/2003",
+  "bio": "",
+  "dailyObj": ""
 }
 
 ### 
@@ -24,11 +26,13 @@ GET http://localhost:5000/Users/username/CoderNamedNick
 GET http://localhost:5000/Users/email/coolapp@123.com
 
 ###
-PATCH  http://localhost:5000/Users/id/6609469809f7b0bbcbb185ac
+PATCH  http://localhost:5000/Users/id/6612e6cfd421efd27ebbfa33
 Content-Type: application/json
 
 {
-  "username": "CoderNamedNick"
+  "username": "CoderNamedNicki",
+  "bio": "blah blah blah",
+  "dailyObj": "lacfha;bac"
 }
 
 

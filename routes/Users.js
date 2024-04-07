@@ -26,7 +26,7 @@ router.get('/email/:email', getUserByemail, (req, res) => {
 });
 //getting by id
 router.get('/id/:id', getUserByID, (req, res) => {
-  res.send(res.user.username);
+  res.send(res.user);
 });
 //Creating one
 router.post('/', async (req, res) => {
@@ -35,6 +35,8 @@ router.post('/', async (req, res) => {
     email: req.body.email,
     password: req.body.password,
     birthDate: req.body.birthDate,
+    bio: req.body.bio, // Include bio field if provided
+    dailyObj: req.body.dailyObj, // Include dailyObj field if provided
   })
   try {
     const savedUser = await newUser.save();
@@ -72,8 +74,8 @@ router.post('/login', async (req, res) => {
       guildsJoined: user.guildsJoined,
       parties: user.parties,
       travelers: user.travelers,
-      dailyObjs: user.dailyObjs,
-      bios: user.bios,
+      dailyObj: user.dailyObj,
+      bio: user.bio,
       // Add more fields as needed
     };
 
@@ -85,20 +87,35 @@ router.post('/login', async (req, res) => {
 });
 //Updating one
 router.patch('/id/:id', getUserByID, async (req, res) => {
-  if (req.body.username != null) {
-    res.user.username = req.body.username
+  try {
+    if (req.body.username != null) {
+      res.user.username = req.body.username;
+    }
+    if (req.body.password != null) {
+      res.user.password = req.body.password;
+    }
+    if (req.body.bio != null) {
+      res.user.bio = req.body.bio;
+    }
+    if (req.body.dailyObj != null) {
+      res.user.dailyObj = req.body.dailyObj;
+    }
+    if (req.body.travelers != null) {
+      res.user.travelers = req.body.travelers;
+    }
+    if (req.body.parties != null) {
+      res.user.parties = req.body.parties;
+    }
+    if (req.body.guildsJoined != null) {
+      res.user.guildsJoined = req.body.guildsJoined;
+    }
+    
+    const updatedUser = await res.user.save();
+    res.json(updatedUser); // Sending a JSON response
+  } catch (err) {
+    res.status(400).json({ message: err.message }); // Sending error message as JSON
   }
-  if (req.body.password != null) {
-    res.user.password = req.body.password
-  }
-  try{
-    const updatedUser = await res.user.save()
-    res.json(updatedUser)
-  }
-  catch (err){
-    res.status(400).json({ message: err.message });
-  }
-})
+});
 //deleting one
 router.delete('/id/:id', getUserByID, async (req, res) => {
   try {

@@ -10,8 +10,8 @@ const userSchema = new mongoose.Schema({
   guildsJoined: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Guild' }],
   parties: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Party' }],
   travelers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Traveler' }],
-  dailyObjs: { type: String },
-  bios: { type: String },
+  dailyObj: { type: String },
+  bio: { type: String },
 });
 
 userSchema.pre('save', async function(next) {
