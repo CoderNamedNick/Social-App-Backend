@@ -37,6 +37,7 @@ router.post('/', async (req, res) => {
     birthDate: req.body.birthDate,
     bio: req.body.bio, // Include bio field if provided
     dailyObj: req.body.dailyObj, // Include dailyObj field if provided
+    AccPrivate: req.body.AccPrivate,
   })
   try {
     const savedUser = await newUser.save();
@@ -76,6 +77,7 @@ router.post('/login', async (req, res) => {
       travelers: user.travelers,
       dailyObj: user.dailyObj,
       bio: user.bio,
+      AccPrivate: user.AccPrivate,
       // Add more fields as needed
     };
 
@@ -108,6 +110,9 @@ router.patch('/id/:id', getUserByID, async (req, res) => {
     }
     if (req.body.guildsJoined != null) {
       res.user.guildsJoined = req.body.guildsJoined;
+    }
+    if (req.body.AccPrivate != null) {
+      res.user.AccPrivate = req.body.AccPrivate;
     }
     
     const updatedUser = await res.user.save();

@@ -9,9 +9,10 @@ const userSchema = new mongoose.Schema({
   AccDate: { type: Date, default: Date.now },
   guildsJoined: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Guild' }],
   parties: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Party' }],
-  travelers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Traveler' }],
+  travelers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], 
   dailyObj: { type: String },
   bio: { type: String },
+  AccPrivate: {type: Boolean, default: false},
 });
 
 userSchema.pre('save', async function(next) {
