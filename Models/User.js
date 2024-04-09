@@ -13,6 +13,7 @@ const userSchema = new mongoose.Schema({
   dailyObj: { type: String },
   bio: { type: String },
   AccPrivate: {type: Boolean, default: false},
+  CompanionRequest: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 });
 
 userSchema.pre('save', async function(next) {
