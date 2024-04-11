@@ -12,6 +12,7 @@ const userSchema = new mongoose.Schema({
   travelers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], 
   dailyObj: { type: String },
   bio: { type: String },
+  ProfileColor: { type: String, default: ''},
   AccPrivate: {type: Boolean, default: false},
   CompanionRequest: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 });

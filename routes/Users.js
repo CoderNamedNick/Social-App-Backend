@@ -38,6 +38,7 @@ router.post('/', async (req, res) => {
     bio: req.body.bio, // Include bio field if provided
     dailyObj: req.body.dailyObj, // Include dailyObj field if provided
     AccPrivate: req.body.AccPrivate,
+    ProfileColor: req.body.ProfileColor
   })
   try {
     const savedUser = await newUser.save();
@@ -79,6 +80,7 @@ router.post('/login', async (req, res) => {
       dailyObj: user.dailyObj,
       bio: user.bio,
       AccPrivate: user.AccPrivate,
+      ProfileColor: user.ProfileColor,
       // Add more fields as needed
     };
 
@@ -114,6 +116,9 @@ router.patch('/id/:id', getUserByID, async (req, res) => {
     }
     if (req.body.AccPrivate != null) {
       res.user.AccPrivate = req.body.AccPrivate;
+    }
+    if (req.body.ProfileColor != null) {
+      res.user.ProfileColor = req.body.ProfileColor;
     }
     
     const updatedUser = await res.user.save();

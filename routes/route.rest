@@ -10,12 +10,10 @@ POST http://localhost:5000/Users
 Content-Type: application/json
 
 {
-  "username": "aaaaaa",
-  "email": "Caaaaapp@123.com",
+  "username": "aaaaaaa",
+  "email": "Caaaaaapp@123.com",
   "password": "zxcvbnm",
-  "birthDate": "04/22/2003",
-  "bio": "",
-  "dailyObj": ""
+  "birthDate": "04/22/2003"
 }
 
 ### 
