@@ -81,6 +81,7 @@ router.post('/login', async (req, res) => {
       bio: user.bio,
       AccPrivate: user.AccPrivate,
       ProfileColor: user.ProfileColor,
+      CompanionRequest: user.CompanionRequest,
       // Add more fields as needed
     };
 
@@ -125,6 +126,27 @@ router.patch('/id/:id', getUserByID, async (req, res) => {
     res.json(updatedUser); // Sending a JSON response
   } catch (err) {
     res.status(400).json({ message: err.message }); // Sending error message as JSON
+  }
+});
+//updating companion requests
+router.patch('/:userId/companion-request', async (req, res) => {
+  const receiverUserId = req.params.userId; // Changed to match parameter name
+  const senderUserId = req.body.companionId; // Extract companionId from the request body
+
+  try {
+    const receiverUser = await User.findById(receiverUserId);
+    if (!receiverUser) {
+      return res.status(404).json({ message: 'Receiver user not found' });
+    }
+
+    // Push the senderUserId (companionId) to the CompanionRequest array of the receiver user
+    receiverUser.CompanionRequest.push(senderUserId);
+    await receiverUser.save();
+
+    res.json({ message: 'Companion request sent successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 });
 //deleting one
