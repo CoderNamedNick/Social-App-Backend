@@ -76,7 +76,7 @@ router.post('/login', async (req, res) => {
       AccDate: user.AccDate,
       guildsJoined: user.guildsJoined,
       parties: user.parties,
-      travelers: user.travelers,
+      companions: user.companions,
       dailyObj: user.dailyObj,
       bio: user.bio,
       AccPrivate: user.AccPrivate,
@@ -106,8 +106,8 @@ router.patch('/id/:id', getUserByID, async (req, res) => {
     if (req.body.dailyObj != null) {
       res.user.dailyObj = req.body.dailyObj;
     }
-    if (req.body.travelers != null) {
-      res.user.travelers = req.body.travelers;
+    if (req.body.companions != null) {
+      res.user.companions = req.body.companions;
     }
     if (req.body.parties != null) {
       res.user.parties = req.body.parties;
