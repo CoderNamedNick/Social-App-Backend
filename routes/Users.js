@@ -224,6 +224,46 @@ router.patch('/:userId/companions/:accepterId', async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 });
+//Removing Companion
+router.delete('/:userId/companions/:companionId', async (req, res) => {
+  const removerId = req.params.userId;
+  const removeeId = req.params.companionId;
+
+  try {
+    // Find the remover user
+    const removerUser = await User.findById(removerId);
+
+    // Check if the remover user exists
+    if (!removerUser) {
+      return res.status(404).json({ message: 'Remover user not found' });
+    }
+
+    // Remove the removeeId from the Companion array of the remover user
+    removerUser.companions = removerUser.companions.filter(id => id.toString() !== removeeId);
+
+    // Save changes to remover user
+    await removerUser.save();
+
+    // Find the removee user
+    const removeeUser = await User.findById(removeeId);
+
+    // Check if the removee user exists
+    if (!removeeUser) {
+      return res.status(404).json({ message: 'Removee user not found' });
+    }
+
+    // Remove the removerId from the Companion array of the removee user
+    removeeUser.companions = removeeUser.companions.filter(id => id.toString() !== removerId);
+
+    // Save changes to removee user
+    await removeeUser.save();
+
+    res.json({ message: 'Companion removed successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
 //deleting one
 router.delete('/id/:id', getUserByID, async (req, res) => {
   try {
