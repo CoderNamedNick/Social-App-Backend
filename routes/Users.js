@@ -149,6 +149,81 @@ router.patch('/:userId/companion-request', async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 });
+//updating companions with an Accept
+router.patch('/:userId/companions', async (req, res) => {
+  const accepterId = req.params.userId;
+  const acceptieId = req.body.companionId; // Renamed from companionId for clarity
+
+  try {
+    // Find the accepter user
+    const accepterUser = await User.findById(accepterId);
+    
+    // Check if the accepter user exists
+    if (!accepterUser) {
+      return res.status(404).json({ message: 'Accepter user not found' });
+    }
+
+    // Push the acceptieId to the Companion array of the accepter user
+    accepterUser.companions.push(acceptieId);
+
+    // Find the acceptie user
+    const acceptieUser = await User.findById(acceptieId);
+
+    // Check if the acceptie user exists
+    if (!acceptieUser) {
+      return res.status(404).json({ message: 'Acceptie user not found' });
+    }
+
+    // Push the accepterId to the Companion array of the acceptie user
+    acceptieUser.companions.push(accepterId);
+
+    // Save changes to both users
+    await Promise.all([accepterUser.save(), acceptieUser.save()]);
+
+    res.json({ message: 'Companion request sent successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+//updating companion request with a decline 
+router.patch('/:userId/companions/:accepterId', async (req, res) => {
+  const acceptieId = req.params.userId;
+  const accepterId = req.params.accepterId;
+
+  try {
+    // Find the accepter user
+    const accepterUser = await User.findById(accepterId);
+    
+    // Check if the accepter user exists
+    if (!accepterUser) {
+      return res.status(404).json({ message: 'Accepter user not found' });
+    }
+
+    // Convert the acceptieId to string for comparison
+    const acceptieIdString = acceptieId.toString();
+
+    // Log the initial CompanionRequest array
+    console.log('Initial CompanionRequest array:', accepterUser.CompanionRequest);
+
+    // Create a new array without the acceptieId
+    const newCompanionRequest = accepterUser.CompanionRequest.filter(id => id.toString() !== acceptieIdString);
+
+    // Log the new CompanionRequest array
+    console.log('New CompanionRequest array:', newCompanionRequest);
+
+    // Update the CompanionRequest array of the accepter user with the new array
+    accepterUser.CompanionRequest = newCompanionRequest;
+
+    // Save changes to the accepter user
+    await accepterUser.save();
+
+    res.json({ message: 'Companion request declined successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
 //deleting one
 router.delete('/id/:id', getUserByID, async (req, res) => {
   try {
