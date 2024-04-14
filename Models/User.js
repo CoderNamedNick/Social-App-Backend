@@ -15,6 +15,7 @@ const userSchema = new mongoose.Schema({
   ProfileColor: { type: String, default: ''},
   AccPrivate: {type: Boolean, default: false},
   CompanionRequest: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  BlockedTravelers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 });
 
 userSchema.pre('save', async function(next) {

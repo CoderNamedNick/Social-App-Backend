@@ -82,6 +82,7 @@ router.post('/login', async (req, res) => {
       AccPrivate: user.AccPrivate,
       ProfileColor: user.ProfileColor,
       CompanionRequest: user.CompanionRequest,
+      BlockedTravelers: user.BlockedTravelers,
       // Add more fields as needed
     };
 
@@ -120,6 +121,9 @@ router.patch('/id/:id', getUserByID, async (req, res) => {
     }
     if (req.body.ProfileColor != null) {
       res.user.ProfileColor = req.body.ProfileColor;
+    }
+    if (req.body.BlockedTravelers != null) {
+      res.user.BlockedTravelers = req.body.BlockedTravelers;
     }
     
     const updatedUser = await res.user.save();
@@ -261,6 +265,37 @@ router.delete('/:userId/companions/:companionId', async (req, res) => {
     res.json({ message: 'Companion removed successfully' });
   } catch (error) {
     console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+//Updating Block List
+router.patch('/:userId/Block-List', async (req, res) => {
+  const userId = req.params.userId;
+  const travelerId = req.body.travelerId;
+
+  try {
+    // Fetch the user by userId
+    const user = await User.findById(userId);
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    // Check if the travelerId is already in the BlockedTravelers array
+    if (user.BlockedTravelers.includes(travelerId)) {
+      return res.status(400).json({ message: 'Traveler already blocked' });
+    }
+    
+    // Add the travelerId to the BlockedTravelers array
+    user.BlockedTravelers.push(travelerId);
+    
+    // Save the updated user
+    const updatedUser = await user.save();
+    
+    // Send a success response with the updated user data
+    res.status(200).json({ message: 'Traveler blocked successfully', user: updatedUser });
+  } catch (error) {
+    console.error('Error blocking traveler:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
