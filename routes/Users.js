@@ -268,7 +268,7 @@ router.delete('/:userId/companions/:companionId', async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 });
-//Updating Block List
+//Updating with Adding Block List
 router.patch('/:userId/Block-List', async (req, res) => {
   const userId = req.params.userId;
   const travelerId = req.body.travelerId;
@@ -296,6 +296,38 @@ router.patch('/:userId/Block-List', async (req, res) => {
     res.status(200).json({ message: 'Traveler blocked successfully', user: updatedUser });
   } catch (error) {
     console.error('Error blocking traveler:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+//removing person from block list 
+router.patch('/:userId/Unblock-List', async (req, res) => {
+  const userId = req.params.userId;
+  const travelerId = req.body.travelerId;
+
+  try {
+    // Fetch the user by userId
+    const user = await User.findById(userId);
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    // Check if the travelerId is in the BlockedTravelers array
+    const index = user.BlockedTravelers.indexOf(travelerId);
+    if (index === -1) {
+      return res.status(400).json({ message: 'Traveler not found in block list' });
+    }
+    
+    // Remove the travelerId from the BlockedTravelers array
+    user.BlockedTravelers.splice(index, 1);
+    
+    // Save the updated user
+    const updatedUser = await user.save();
+    
+    // Send a success response with the updated user data
+    res.status(200).json({ message: 'Traveler unblocked successfully', user: updatedUser });
+  } catch (error) {
+    console.error('Error unblocking traveler:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
