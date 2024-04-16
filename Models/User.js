@@ -7,6 +7,7 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true },
   birthDate: { type: Date, required: true },
   AccDate: { type: Date, default: Date.now },
+  guildsOwned: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Guild' }],
   guildsJoined: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Guild' }],
   parties: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Party' }],
   companions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], 

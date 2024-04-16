@@ -7,10 +7,17 @@ const guildSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  guildMoto: { type: String, required: true },
+  guildElders: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   guildDate: { type: Date, default: Date.now },
   joinedTravelers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   bio: { type: String, required: true },
-  guildPost: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Post' }]
+  guildPost: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Post' }],
+  RequestToJoin: {type: Boolean, required: true},
+  Findable: {type: Boolean, required: true},
+  guildJoinRequest: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  bannedTravelers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  guildColor: { type: String},
 });
 
 guildSchema.pre('save', async function (next) {
