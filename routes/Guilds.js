@@ -24,12 +24,13 @@ router.get('/id/:id', getGuildByID, (req, res) => {
 });
 
 // Create a guild
-router.post('/', async (req, res) => {
-  const { guildName, guildOwner, bio } = req.body;
+router.post('/:id/Make-Guild', async (req, res) => {
+  const guildowner = req.params.id;
+  const { guildName, bio, guildMoto, RequestToJoin, Findable, guildColor } = req.body;
   
   try {
     // Check if the guild owner exists
-    const owner = await User.findById(guildOwner);
+    const owner = await User.findById(guildowner);
     if (!owner) {
       return res.status(404).json({ message: 'Owner user not found' });
     }
@@ -37,8 +38,12 @@ router.post('/', async (req, res) => {
     // Create a new guild with the owner's ObjectId
     const newGuild = new Guild({
       guildName,
-      guildOwner: owner._id, // Assign owner's ObjectId
+      guildOwner: guildowner, // Assign owner's ObjectId
       bio,
+      guildMoto,
+      RequestToJoin,
+      Findable,
+      guildColor,
     });
     
     const savedGuild = await newGuild.save();
