@@ -3,6 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs'); // Import bcrypt for password hashing
 const jwt = require('jsonwebtoken'); // Import jsonwebtoken for creating JWT tokens
 const User = require('../Models/User');
+const Guild = require('../Models/Guild');
 
 //MAKE ROUTES
 
@@ -328,6 +329,37 @@ router.patch('/:userId/Unblock-List', async (req, res) => {
     res.status(200).json({ message: 'Traveler unblocked successfully', user: updatedUser });
   } catch (error) {
     console.error('Error unblocking traveler:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+//Updating Guild List with a join
+router.patch('/:userId/join-guild', async (req, res) => {
+  const userId = req.params.userId;
+  const GuildId = req.body.GuildId;
+
+  try {
+    // Fetch the user by userId
+    const user = await User.findById(userId);
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    // Check if the travelerId is already in the BlockedTravelers array
+    if (user.guildsJoined.includes(GuildId)) {
+      return res.status(400).json({ message: 'Traveler already blocked' });
+    }
+    
+    // Add the travelerId to the BlockedTravelers array
+    user.guildsJoined.push(GuildId);
+    
+    // Save the updated user
+    const updatedUser = await user.save();
+    
+    // Send a success response with the updated user data
+    res.status(200).json({ message: 'guild joined successfully', user: updatedUser });
+  } catch (error) {
+    console.error('Error joining guild:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });

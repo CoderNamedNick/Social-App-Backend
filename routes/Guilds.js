@@ -24,37 +24,44 @@ router.get('/id/:id', getGuildByID, (req, res) => {
 });
 
 // Create a guild
-router.post('/:id/Make-Guild', async (req, res) => {
-  const guildowner = req.params.id;
-  const { guildName, bio, guildMoto, RequestToJoin, Findable, guildColor } = req.body;
-  
+router.post('/:userId/make-guild', async (req, res) => {
+  const userId = req.params.userId;
+  const { guildName, guildMoto, bio, guildColor, RequestToJoin, Findable } = req.body;
+
   try {
-    // Check if the guild owner exists
-    const owner = await User.findById(guildowner);
-    if (!owner) {
-      return res.status(404).json({ message: 'Owner user not found' });
-    }
+    // Fetch the user by userId
+    const user = await User.findById(userId);
     
-    // Create a new guild with the owner's ObjectId
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Create the new guild
     const newGuild = new Guild({
       guildName,
-      guildOwner: guildowner, // Assign owner's ObjectId
-      bio,
       guildMoto,
+      bio,
+      guildColor,
       RequestToJoin,
       Findable,
-      guildColor,
+      guildOwner: userId // Assign the user as the guild owner
     });
-    
+
+    // Save the new guild
     const savedGuild = await newGuild.save();
 
-    // Fetch the saved guild with populated guildOwner
-    const populatedGuild = await Guild.findById(savedGuild._id).populate('guildOwner', 'username');
+    // Update the user's arrays
+    user.guildsOwned.push(savedGuild._id); // Add guild to guildsOwned
+    user.guildsJoined.push(savedGuild._id); // Add guild to guildsJoined
     
-    // Send response with the populated guild, including owner's username
-    res.status(201).json(populatedGuild);
-  } catch (err) {
-    res.status(400).json({ message: err.message });
+    // Save the updated user
+    const updatedUser = await user.save();
+    
+    // Send a success response with the updated user data and the created guild
+    res.status(200).json({ message: 'Guild created and user updated successfully', user: updatedUser, guild: savedGuild });
+  } catch (error) {
+    console.error('Error creating guild:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 });
 
