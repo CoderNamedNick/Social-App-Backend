@@ -76,6 +76,7 @@ router.post('/login', async (req, res) => {
       birthDate: user.birthDate,
       AccDate: user.AccDate,
       guildsJoined: user.guildsJoined,
+      guildsOwned: user.guildsOwned,
       parties: user.parties,
       companions: user.companions,
       dailyObj: user.dailyObj,
