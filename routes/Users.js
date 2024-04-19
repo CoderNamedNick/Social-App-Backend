@@ -85,6 +85,7 @@ router.post('/login', async (req, res) => {
       ProfileColor: user.ProfileColor,
       CompanionRequest: user.CompanionRequest,
       BlockedTravelers: user.BlockedTravelers,
+      messages: user.messages,
       // Add more fields as needed
     };
 
@@ -127,11 +128,29 @@ router.patch('/id/:id', getUserByID, async (req, res) => {
     if (req.body.BlockedTravelers != null) {
       res.user.BlockedTravelers = req.body.BlockedTravelers;
     }
+    if (req.body.messages != null) {
+      res.user.messages = req.body.messages;
+    }
     
     const updatedUser = await res.user.save();
     res.json(updatedUser); // Sending a JSON response
   } catch (err) {
     res.status(400).json({ message: err.message }); // Sending error message as JSON
+  }
+});
+//getting message count
+router.post('/messages/count', async (req, res) => {
+  const companionId = req.body.companionId;
+
+  try {
+    // Find the user by companionId and retrieve the number of messages they have
+    const user = await User.findById(companionId);
+    const messageCount = user.messages ? user.messages.length : 0;
+
+    res.json({ count: messageCount });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 //updating companion requests

@@ -10,13 +10,17 @@ const userSchema = new mongoose.Schema({
   guildsOwned: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Guild' }],
   guildsJoined: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Guild' }],
   parties: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Party' }],
-  companions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], 
+  companions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   dailyObj: { type: String },
   bio: { type: String },
   ProfileColor: { type: String, default: ''},
-  AccPrivate: {type: Boolean, default: false},
+  AccPrivate: { type: Boolean, default: false },
   CompanionRequest: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   BlockedTravelers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  messages: [{
+    sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    content: { type: String }
+  }]
 });
 
 userSchema.pre('save', async function(next) {
