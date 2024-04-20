@@ -20,19 +20,6 @@ const guildSchema = new mongoose.Schema({
   guildColor: { type: String},
 });
 
-guildSchema.pre('save', async function (next) {
-  try {
-    const existingGuild = await this.constructor.findOne({ guildName: this.guildName });
-    if (existingGuild) {
-      const error = new Error('Guild already exists');
-      next(error);
-    } else {
-      next();
-    }
-  } catch (error) {
-    next(error);
-  }
-});
 
 const Guild = mongoose.model('Guild', guildSchema);
 

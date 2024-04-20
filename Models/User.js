@@ -9,6 +9,7 @@ const userSchema = new mongoose.Schema({
   AccDate: { type: Date, default: Date.now },
   guildsOwned: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Guild' }],
   guildsJoined: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Guild' }],
+  requestedGuilds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Guild' }],
   parties: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Party' }],
   companions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   dailyObj: { type: String },

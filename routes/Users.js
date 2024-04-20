@@ -86,6 +86,7 @@ router.post('/login', async (req, res) => {
       CompanionRequest: user.CompanionRequest,
       BlockedTravelers: user.BlockedTravelers,
       messages: user.messages,
+      requestedGuilds: user.requestedGuilds,
       // Add more fields as needed
     };
 
@@ -130,6 +131,9 @@ router.patch('/id/:id', getUserByID, async (req, res) => {
     }
     if (req.body.messages != null) {
       res.user.messages = req.body.messages;
+    }
+    if (req.body.requestedGuilds != null) {
+      res.user.requestedGuilds = req.body.requestedGuilds;
     }
     
     const updatedUser = await res.user.save();

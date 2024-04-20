@@ -80,7 +80,78 @@ router.patch('/id/:id', getGuildByID, async (req, res) => {
     res.status(400).json({ message: err.message });
   }
 });
+// Update a guild's JoinRequest and a user's requestedGuilds
+router.patch('/:id/Join-Request', async (req, res) => {
+  const GuildId = req.params.id; // Changed to match parameter name
+  const senderUserId = req.body.TravelerId; // Extract travelerId from the request body
 
+  try {
+    // Find the guild
+    const JoiningGuild = await Guild.findById(GuildId);
+    if (!JoiningGuild) {
+      return res.status(404).json({ message: 'Guild not found' });
+    }
+
+    // Push the senderUserId to the guildJoinRequest array of the guild
+    JoiningGuild.guildJoinRequest.push(senderUserId);
+
+    // Find the user who is sending the join request
+    const SendingUser = await User.findById(senderUserId);
+    if (!SendingUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Push the guildId to the requestedGuilds array of the user
+    SendingUser.requestedGuilds.push(GuildId);
+
+    // Save changes to both the guild and the user
+    await Promise.all([JoiningGuild.save(), SendingUser.save()]);
+
+    // Fetch updated user information
+    const updatedUser = await User.findById(senderUserId);
+
+    res.json({ message: 'Join request sent successfully', user: updatedUser });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Failed to send join request. Please try again later.' });
+  }
+});
+// Update a guild's joinedTravelers and a user's guildsJoined
+router.patch('/:id/Join', async (req, res) => {
+  const GuildId = req.params.id; // Changed to match parameter name
+  const senderUserId = req.body.TravelerId; // Extract travelerId from the request body
+
+  try {
+    // Find the guild
+    const JoiningGuild = await Guild.findById(GuildId);
+    if (!JoiningGuild) {
+      return res.status(404).json({ message: 'Guild not found' });
+    }
+
+    // Push the senderUserId (travelerId) to the joinedTravelers array of the guild
+    JoiningGuild.joinedTravelers.push(senderUserId);
+
+    // Find the user who is joining the guild
+    const JoinedUser = await User.findById(senderUserId);
+    if (!JoinedUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Push the guildId to the guildsJoined array of the user
+    JoinedUser.guildsJoined.push(GuildId);
+
+    // Save changes to both the guild and the user
+    await Promise.all([JoiningGuild.save(), JoinedUser.save()]);
+
+    // Fetch updated user information
+    const updatedUser = await User.findById(senderUserId);
+
+    res.json({ message: 'Joined successfully', user: updatedUser });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Failed to join. Please try again later.' });
+  }
+});
 // Delete a guild
 router.delete('/id/:id', getGuildByID, async (req, res) => {
   try {
