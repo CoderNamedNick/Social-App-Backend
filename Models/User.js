@@ -18,10 +18,6 @@ const userSchema = new mongoose.Schema({
   AccPrivate: { type: Boolean, default: false },
   CompanionRequest: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   BlockedTravelers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-  messages: [{
-    sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    content: { type: String }
-  }]
 });
 
 userSchema.pre('save', async function(next) {
