@@ -34,27 +34,40 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
 
   // Create HTTP server
   const PORT = process.env.PORT || 5000;
-  const server = http.createServer(app); // Create HTTP server
+  const server = http.createServer(app);
   server.listen(PORT, () => {
     console.log(`HTTP Server is running on port ${PORT}`);
   });
 
-  // Create WebSocket server
-  const wss = new WebSocket.Server({ server });
+  // WebSocket server
+  const wss = new WebSocket.Server({ noServer: true }); // Create WebSocket server without attaching it to the HTTP server
+
+  // Global variable to store message count
+  let messageCount = 0;
+
+  // Function to broadcast message count to all clients
+  const broadcastMessageCount = () => {
+    const message = JSON.stringify({ count: messageCount });
+    wss.clients.forEach(client => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(message);
+      }
+    });
+  };
 
   // Handle WebSocket connections
   wss.on('connection', ws => {
     console.log('New WebSocket connection');
 
+    // Send current message count to the new client
+    ws.send(JSON.stringify({ count: messageCount }));
+
     // Handle incoming messages
     ws.on('message', message => {
       console.log('Received message:', message);
-      // Broadcast the message to all connected clients
-      wss.clients.forEach(client => {
-        if (client !== ws && client.readyState === WebSocket.OPEN) {
-          client.send(message);
-        }
-      });
+      // Update message count and broadcast to all clients
+      messageCount++;
+      broadcastMessageCount();
     });
   });
 
@@ -64,7 +77,6 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
       wss.emit('connection', ws, request);
     });
   });
-
 })
 .catch((error) => {
   console.error('Error connecting to MongoDB:', error);
