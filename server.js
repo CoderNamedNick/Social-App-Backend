@@ -6,6 +6,9 @@ const mongoose = require('mongoose');
 const WebSocket = require('ws');
 const http = require('http'); // Import http module
 
+// Import the User model
+const User = require('./Models/User');
+
 // Import route handlers
 const userRouter = require('./routes/Users');
 const guildRouter = require('./routes/Guilds');
@@ -19,7 +22,6 @@ app.use(cors());
 app.use(express.json());
 
 // Routes
-
 app.use('/Users', userRouter);
 app.use('/Guilds', guildRouter);
 app.use('/Messages', messageRouter);
@@ -40,34 +42,39 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
   });
 
   // WebSocket server
-  const wss = new WebSocket.Server({ noServer: true }); // Create WebSocket server without attaching it to the HTTP server
+  const wss = new WebSocket.Server({ noServer: true });
 
-  // Global variable to store message count
-  let messageCount = 0;
-
-  // Function to broadcast message count to all clients
-  const broadcastMessageCount = () => {
-    const message = JSON.stringify({ count: messageCount });
-    wss.clients.forEach(client => {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(message);
-      }
-    });
-  };
-
-  // Handle WebSocket connections
-  wss.on('connection', ws => {
+  wss.on('connection', (ws, request) => {
     console.log('New WebSocket connection');
 
-    // Send current message count to the new client
-    ws.send(JSON.stringify({ count: messageCount }));
-
-    // Handle incoming messages
+    // Event listener for incoming messages
     ws.on('message', message => {
       console.log('Received message:', message);
-      // Update message count and broadcast to all clients
-      messageCount++;
-      broadcastMessageCount();
+      const { token } = JSON.parse(message);
+      console.log('Received token:', token);
+
+      // Authenticate user based on token sent by the client
+      authenticateUser(token)
+        .then(user => {
+          if (!user) {
+            console.log('No User');
+            // Close connection if authentication fails
+            ws.close();
+            return;
+          }
+
+          // Send user-specific data to the new client
+          ws.send(JSON.stringify({ user }));
+        })
+        .catch(error => {
+          console.error('Error authenticating user:', error);
+          ws.close();
+        });
+    });
+
+    ws.on('close', (code, reason) => {
+      console.log('WebSocket connection closed:', code, reason);
+      // Additional cleanup or logging if needed
     });
   });
 
@@ -77,7 +84,28 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
       wss.emit('connection', ws, request);
     });
   });
+
 })
 .catch((error) => {
   console.error('Error connecting to MongoDB:', error);
 });
+
+async function authenticateUser(token) {
+  try {
+    if (!token) {
+      console.log('no token');
+      return null;
+    } 
+    
+    // Verify token and extract user information
+    const decoded = jwt.verify(token, 'your_secret_key'); // Replace 'your_secret_key' with your actual secret key
+    const { userId } = decoded;
+
+    // Fetch user from the database based on userId
+    const foundUser = await User.findById(userId); // Use a different variable name to avoid confusion
+    console.log(foundUser);
+    return foundUser;
+  } catch (error) {
+    throw error;
+  }
+}
