@@ -56,3 +56,14 @@ Content-Type: application/json
 ###
 
 DELETE http://localhost:5000/Guilds/id/
+
+###
+
+POST http://localhost:5000/Messages/messages
+Content-Type: application/json
+
+{
+  "senderId": "66251989070060c32df017a9",
+  "receiverId": "66266f2e784da9a05838be81",
+  "content": "This is the message content.3"
+}
