@@ -64,6 +64,6 @@ Content-Type: application/json
 
 {
   "senderId": "66251989070060c32df017a9",
-  "receiverId": "66266f2e784da9a05838be81",
+  "receiverId": "6625180d070060c32df0178f",
   "content": "This is the message content.3"
 }
