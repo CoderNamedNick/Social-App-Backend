@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const Message = require('../Models/Message');
 const User = require('../Models/User');
-const messageEmitter = require('../Emitters/messageEmitter');
 
 // POST route to create a new message
 router.post('/messages', async (req, res) => {
@@ -30,9 +29,6 @@ router.post('/messages', async (req, res) => {
 
     // Save the message to the database
     await message.save();
-
-    // Emit an event for the new message with the receiver's user ID
-    messageEmitter.emit('newMessage', receiverId);
 
     // Send a success response
     res.status(201).json({ message: 'Message created successfully', data: message });
