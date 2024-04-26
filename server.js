@@ -3,7 +3,6 @@ const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
-const WebSocket = require('ws');
 const socketIO = require('socket.io');
 const http = require('http');
 
@@ -54,8 +53,8 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
   io.on('connection', (socket) => {
     console.log('New Socket.IO connection');
 
-    // Event for Message Count
-    socket.on('message-count', async (userId) => {
+    // Event for Converstaion Count
+    socket.on('Converstaion-count', async (userId) => {
       try {
         // Authenticate user based on userId
         const user = await authenticateUserById(userId);
@@ -64,21 +63,90 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
           return;
         }
     
-        // Fetch unread message count for the user from the database
-        const unreadMessageCount = await getMessageCount(user._id);
+        // Fetch unread Converstaion count for the user from the database
+        const unreadConverstaionCount = await getConverstaionCount(user._id);
     
-        // Emit the unread message count to the client
-        socket.emit('message-count-response', unreadMessageCount);
+        // Emit the unread Converstaion count to the client
+        socket.emit('Converstaion-count-response', unreadConverstaionCount);
       } catch (error) {
-        console.error('Error fetching message count:', error);
+        console.error('Error fetching Converstaion count:', error);
+      }
+    });
+
+    // Event for message Count
+    // fix this 
+    socket.on('message-count', async (userId, companionid) => {
+      try {
+        // Authenticate user based on userId
+         // Authenticate sender and receiver based on their IDs
+         const theUser = await authenticateUserById(userId);
+         const theComapnion = await authenticateUserById(companionid);
+ 
+         // Check if both sender and receiver exist
+         if (!theUser || !theComapnion) {
+            console.log('User or Companion not authenticated');
+            return;
+         }
+    
+        // Fetch unread Converstaion count for the user from the database
+        const unreadmessageCount = await getMessageCount(theUser._id || theUser.id, theComapnion.id || theComapnion._id);
+    
+        // Emit the unread messagae count to the client
+        socket.emit('message-count-response', {theComapnion , unreadmessageCount });
+      } catch (error) {
+        console.error('Error fetching Converstaion count:', error);
       }
     });
 
     // Event listener for incoming messages
-    io.on('sending-Message', (message, room) => {
-    
-
-    });
+    io.on('sending-Message', async (senderId, receiverId, messageContent) => {
+      try {
+          // Authenticate sender and receiver based on their IDs
+          const sender = await authenticateUserById(senderId);
+          const receiver = await authenticateUserById(receiverId);
+  
+          // Check if both sender and receiver exist
+          if (!sender || !receiver) {
+              console.log('Sender or receiver not authenticated');
+              return;
+          }
+  
+          // Check if there's an existing conversation between sender and receiver
+          let conversation = await Message.findOne({
+              messengers: { $all: [senderId, receiverId] }
+          });
+  
+          // If no existing conversation, create a new one
+          if (!conversation) {
+              conversation = new Message({
+                  messengers: [senderId, receiverId],
+                  messages: []
+              });
+          }
+  
+          // Create a new message object
+          const newMessage = {
+              sender: senderId,
+              receiver: receiverId,
+              content: messageContent,
+              timestamp: new Date() // You can add a timestamp for the message
+          };
+  
+          // Add the new message to the conversation
+          conversation.messages.push(newMessage);
+  
+          // Save the conversation to the database
+          await conversation.save();
+  
+          // Emit the new message to both sender and receiver
+          io.to(senderId).emit('new-message', newMessage);
+          io.to(receiverId).emit('new-message', newMessage);
+  
+          console.log('Message sent successfully.');
+      } catch (error) {
+          console.error('Error sending message:', error);
+      }
+  });
 
     // Event listener for WebSocket connection closure
     socket.on('disconnect', () => {
@@ -102,8 +170,8 @@ async function authenticateUserById(userId) {
     throw error;
   }
 }
-// Function to fetch unread message count for a user
-async function getMessageCount(userId) {
+// Function to fetch unread conversation count for a user
+async function getConverstaionCount(userId) {
   try {
     // Your logic to fetch unread message count from the database based on userId
     // For example:
@@ -113,6 +181,32 @@ async function getMessageCount(userId) {
       'messages.read': false
     });
     return unreadMessages.length;
+  } catch (error) {
+    throw error;
+  }
+}
+// Function to fetch unread message count between a user and a companion
+async function getMessageCount(userId, companionId) {
+  try {
+    // Find the conversation between the user and the companion
+    const conversation = await Message.findOne({
+      messengers: { $all: [userId, companionId] }
+    });
+
+    // If conversation doesn't exist or no messages, return 0
+    if (!conversation || conversation.messages.length === 0) {
+      return 0;
+    }
+
+    // Count unread messages between the user and the companion
+    let unreadCount = 0;
+    conversation.messages.forEach(message => {
+      if (message.reciever.includes(userId) && message.sender.equals(companionId) && !message.read) {
+        unreadCount++;
+      }
+    });
+
+    return unreadCount;
   } catch (error) {
     throw error;
   }
