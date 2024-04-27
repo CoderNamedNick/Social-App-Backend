@@ -74,10 +74,11 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
     });
 
     // Event for message Count
-    // fix this 
     socket.on('message-count', async (userId, companionid) => {
       try {
-        // Authenticate user based on userId
+          // Authenticate user based on userId
+          console.log('Userid', userId)
+          console.log('Companionid', companionid)
          // Authenticate sender and receiver based on their IDs
          const theUser = await authenticateUserById(userId);
          const theComapnion = await authenticateUserById(companionid);
@@ -107,29 +108,29 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
   
           // Check if both sender and receiver exist
           if (!sender || !receiver) {
-              console.log('Sender or receiver not authenticated');
-              return;
+            console.log('Sender or receiver not authenticated');
+            return;
           }
   
           // Check if there's an existing conversation between sender and receiver
           let conversation = await Message.findOne({
-              messengers: { $all: [senderId, receiverId] }
+            messengers: { $all: [senderId, receiverId] }
           });
   
           // If no existing conversation, create a new one
           if (!conversation) {
-              conversation = new Message({
-                  messengers: [senderId, receiverId],
-                  messages: []
-              });
+            conversation = new Message({
+              messengers: [senderId, receiverId],
+              messages: []
+            });
           }
   
           // Create a new message object
           const newMessage = {
-              sender: senderId,
-              receiver: receiverId,
-              content: messageContent,
-              timestamp: new Date() // You can add a timestamp for the message
+            sender: senderId,
+            receiver: receiverId,
+            content: messageContent,
+            timestamp: new Date() // You can add a timestamp for the message
           };
   
           // Add the new message to the conversation
@@ -201,7 +202,7 @@ async function getMessageCount(userId, companionId) {
     // Count unread messages between the user and the companion
     let unreadCount = 0;
     conversation.messages.forEach(message => {
-      if (message.reciever.includes(userId) && message.sender.equals(companionId) && !message.read) {
+      if (message.receiver.includes(userId) && message.sender.equals(companionId) && !message.read) {
         unreadCount++;
       }
     });
