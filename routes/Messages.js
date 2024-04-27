@@ -115,7 +115,7 @@ router.get('/messages/unread/:userId', async (req, res) => {
   }
 });
 
-// GET route to find conversations for a user
+// GET route to find messages for a user
 router.get('/messages/:userId', async (req, res) => {
   try {
     // Extract userId from request parameters
@@ -150,6 +150,43 @@ router.get('/messages/:userId', async (req, res) => {
         };
         conversations.push(conversation);
       });
+    });
+
+    // Send the conversations array as a response
+    res.status(200).json({ conversations: conversations });
+  } catch (error) {
+    // Handle any errors
+    console.error('Error finding unread messages:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+// GET route to find Convos for a user
+router.get('/Conversations/:userId', async (req, res) => {
+  try {
+    // Extract userId from request parameters
+    const userId = req.params.userId;
+
+    // Check if the user exists
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const conversations = [];
+
+    // Find unread messages for the user
+    const Convos = await Message.find({
+      messengers: userId,
+    });
+
+    // Iterate over unreadMessages and populate conversations array
+    Convos.forEach(Convo => {
+      const Converstation = {
+        messageId: Convo._id || Convo.id,
+        messengers: Convo.messengers
+        // Add other fields you need from the message
+      };
+      conversations.push(Converstation)
     });
 
     // Send the conversations array as a response
