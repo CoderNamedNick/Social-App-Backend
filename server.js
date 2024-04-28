@@ -67,7 +67,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         const unreadConverstaionCount = await getConverstaionCount(user._id);
     
         // Emit the unread Converstaion count to the client
-        socket.emit('Converstaion-count-response', unreadConverstaionCount);
+        socket.to(userId).emit('Converstaion-count-response', unreadConverstaionCount);
       } catch (error) {
         console.error('Error fetching Converstaion count:', error);
       }
@@ -93,59 +93,63 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         const unreadmessageCount = await getMessageCount(theUser._id || theUser.id, theComapnion.id || theComapnion._id);
     
         // Emit the unread messagae count to the client
-        socket.emit('message-count-response', {theComapnion , unreadmessageCount });
+        socket.to(userId).emit('message-count-response', {theComapnion , unreadmessageCount });
       } catch (error) {
         console.error('Error fetching Converstaion count:', error);
       }
     });
 
     // Event listener for incoming messages
-    io.on('sending-Message', async (senderId, receiverId, messageContent) => {
+    io.on('sending-A-Message', async (senderId, receiverId, messageContent) => {
       try {
-          // Authenticate sender and receiver based on their IDs
-          const sender = await authenticateUserById(senderId);
-          const receiver = await authenticateUserById(receiverId);
-  
-          // Check if both sender and receiver exist
-          if (!sender || !receiver) {
-            console.log('Sender or receiver not authenticated');
-            return;
-          }
-  
-          // Check if there's an existing conversation between sender and receiver
-          let conversation = await Message.findOne({
-            messengers: { $all: [senderId, receiverId] }
+        console.log('trying message')
+        // Authenticate sender and receiver based on their IDs
+        const sender = await authenticateUserById(senderId);
+        const receiver = await authenticateUserById(receiverId);
+
+        // Check if both sender and receiver exist
+        if (!sender || !receiver) {
+          console.log('Sender or receiver not authenticated');
+          return;
+        }
+
+        // Check if there's an existing conversation between sender and receiver
+        let conversation = await Message.findOne({
+          messengers: { $all: [senderId, receiverId] }
+        });
+
+        // If no existing conversation, create a new one
+        if (!conversation) {
+          conversation = new Message({
+            messengers: [senderId, receiverId],
+            messages: []
           });
-  
-          // If no existing conversation, create a new one
-          if (!conversation) {
-            conversation = new Message({
-              messengers: [senderId, receiverId],
-              messages: []
-            });
-          }
-  
-          // Create a new message object
-          const newMessage = {
-            sender: senderId,
-            receiver: receiverId,
-            content: messageContent,
-            timestamp: new Date() // You can add a timestamp for the message
-          };
-  
-          // Add the new message to the conversation
-          conversation.messages.push(newMessage);
-  
-          // Save the conversation to the database
-          await conversation.save();
-  
-          // Emit the new message to both sender and receiver
-          io.to(senderId).emit('new-message', newMessage);
-          io.to(receiverId).emit('new-message', newMessage);
-  
-          console.log('Message sent successfully.');
+        }
+
+        // Create a new message object
+        const newMessage = {
+          sender: senderId,
+          receiver: receiverId,
+          content: messageContent,
+          timestamp: new Date(), // You can add a timestamp for the message
+          read: false,
+        };
+
+        // Add the new message to the conversation
+        conversation.messages.push(newMessage);
+
+        // Save the conversation to the database
+        await conversation.save();
+
+        // Emit the new message to both sender and receiver
+        io.to(senderId).emit('new-message', newMessage);
+        io.to(receiverId).emit('new-message', newMessage);
+        io.emit('Converstaion-count', senderId)
+        io.emit('message-count', senderId, receiverId );
+
+        console.log('Message sent successfully.');
       } catch (error) {
-          console.error('Error sending message:', error);
+        console.error('Error sending message:', error);
       }
   });
 

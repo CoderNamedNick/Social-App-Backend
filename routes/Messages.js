@@ -39,10 +39,12 @@ router.post('/messages', async (req, res) => {
   }
 });
 // POST route to send a message
-router.post('/messages/send', async (req, res) => {
+router.post('/messages/:senderId/send/:receiverId', async (req, res) => {
   try {
     // Extract sender, receiver, and message content from request body
-    const { senderId, receiverId, content } = req.body;
+    const { content } = req.body;
+    const senderId = req.params.senderId;
+    const receiverId  = req.params.receiverId;
 
     // Check if sender and receiver exist
     const sender = await User.findById(senderId);
@@ -61,7 +63,11 @@ router.post('/messages/send', async (req, res) => {
     if (!conversation) {
       conversation = new Message({
         messengers: [senderId, receiverId],
-        messages: []
+        messages: [{
+          sender: senderId,
+          receiver: receiverId,
+          content: content,
+        }]
       });
     }
 
