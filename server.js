@@ -68,6 +68,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
     
         // Emit the unread Converstaion count to the client
         socket.to(userId).emit('Converstaion-count-response', unreadConverstaionCount);
+        console.log('sent Converstaion-count-response')
       } catch (error) {
         console.error('Error fetching Converstaion count:', error);
       }
@@ -101,6 +102,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
 
     // Event listener for incoming messages
     io.on('sending-A-Message', async (senderId, receiverId, messageContent) => {
+      console.log('trying message')
       try {
         console.log('trying message')
         // Authenticate sender and receiver based on their IDs

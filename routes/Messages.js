@@ -44,7 +44,7 @@ router.post('/messages/:senderId/send/:receiverId', async (req, res) => {
     // Extract sender, receiver, and message content from request body
     const { content } = req.body;
     const senderId = req.params.senderId;
-    const receiverId  = req.params.receiverId;
+    const receiverId = req.params.receiverId;
 
     // Check if sender and receiver exist
     const sender = await User.findById(senderId);
@@ -54,33 +54,46 @@ router.post('/messages/:senderId/send/:receiverId', async (req, res) => {
       return res.status(404).json({ error: 'Sender or receiver not found' });
     }
 
+    // Get the usernames of sender and receiver
+    const senderUsername = sender.username;
+    const receiverUsername = receiver.username;
+
     // Check if there's an existing conversation between sender and receiver
     let conversation = await Message.findOne({
-      messengers: { $all: [senderId, receiverId] }
+      messengers: { $all: [senderId, receiverId] },
+      UserNames: { $all: [senderUsername, receiverUsername] },
     });
 
     // If no existing conversation, create a new one
     if (!conversation) {
       conversation = new Message({
         messengers: [senderId, receiverId],
+        UserNames: [senderUsername, receiverUsername], // Add usernames
         messages: [{
           sender: senderId,
           receiver: receiverId,
           content: content,
         }]
       });
-    }
+    } else {
+      // Update the usernames if they are not already present
+      if (!conversation.UserNames.includes(senderUsername)) {
+        conversation.UserNames.push(senderUsername);
+      }
+      if (!conversation.UserNames.includes(receiverUsername)) {
+        conversation.UserNames.push(receiverUsername);
+      }
 
-    // Add the new message to the conversation
-    conversation.messages.push({
-      sender: senderId,
-      receiver: receiverId,
-      content: content
-    });
+      // Add the new message to the conversation
+      conversation.messages.push({
+        sender: senderId,
+        receiver: receiverId,
+        content: content
+      });
+    }
 
     // Save the conversation to the database
     await conversation.save();
-
 
     // Send a success response
     res.status(201).json({ message: 'Message sent successfully', data: conversation });
@@ -189,7 +202,8 @@ router.get('/Conversations/:userId', async (req, res) => {
     Convos.forEach(Convo => {
       const Converstation = {
         messageId: Convo._id || Convo.id,
-        messengers: Convo.messengers
+        messengers: Convo.messengers,
+        UserNames: Convo.UserNames,
         // Add other fields you need from the message
       };
       conversations.push(Converstation)
