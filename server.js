@@ -74,29 +74,26 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
       }
     });
 
-    // Event for message Count
-    socket.on('message-count', async (userId, companionid) => {
+   // Event for message Count
+    socket.on('message-count', async (userId, companionId, cb) => {
       try {
-          // Authenticate user based on userId
-          console.log('Userid', userId)
-          console.log('Companionid', companionid)
-         // Authenticate sender and receiver based on their IDs
-         const theUser = await authenticateUserById(userId);
-         const theComapnion = await authenticateUserById(companionid);
- 
-         // Check if both sender and receiver exist
-         if (!theUser || !theComapnion) {
-            console.log('User or Companion not authenticated');
-            return;
-         }
-    
-        // Fetch unread Converstaion count for the user from the database
-        const unreadmessageCount = await getMessageCount(theUser._id || theUser.id, theComapnion.id || theComapnion._id);
-    
-        // Emit the unread messagae count to the client
-        socket.to(userId).emit('message-count-response', {theComapnion , unreadmessageCount });
+        // Authenticate user based on userId
+        const theUser = await authenticateUserById(userId);
+        const theCompanion = await authenticateUserById(companionId);
+
+        // Check if both sender and receiver exist
+        if (!theUser || !theCompanion) {
+          console.log('User or Companion not authenticated');
+          return;
+        }
+
+        // Fetch unread message count for the user from the database
+        const unreadMessageCount = await getMessageCount(theUser._id || theUser.id, theCompanion._id || theCompanion.id);
+
+        // Emit the unread message count to the client
+        cb(unreadMessageCount);
       } catch (error) {
-        console.error('Error fetching Converstaion count:', error);
+        console.error('Error fetching Message count:', error);
       }
     });
 
