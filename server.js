@@ -54,7 +54,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
     console.log('New Socket.IO connection');
 
     // Event for Converstaion Count
-    socket.on('Converstaion-count', async (userId) => {
+    socket.on('Conversation-count', async (userId, cb) => {
       try {
         // Authenticate user based on userId
         const user = await authenticateUserById(userId);
@@ -64,13 +64,13 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         }
     
         // Fetch unread Converstaion count for the user from the database
-        const unreadConverstaionCount = await getConverstaionCount(user._id);
+        const unreadConversationCount = await getConversationCount(user._id);
     
-        // Emit the unread Converstaion count to the client
-        socket.to(userId).emit('Converstaion-count-response', unreadConverstaionCount);
-        console.log('sent Converstaion-count-response')
+        // Emit the unread Conversation count to the client
+        cb(unreadConversationCount);
+        console.log('sent Conversation-count-response');
       } catch (error) {
-        console.error('Error fetching Converstaion count:', error);
+        console.error('Error fetching Conversation count:', error);
       }
     });
 
@@ -178,7 +178,7 @@ async function authenticateUserById(userId) {
   }
 }
 // Function to fetch unread conversation count for a user
-async function getConverstaionCount(userId) {
+async function getConversationCount(userId) {
   try {
     // Your logic to fetch unread message count from the database based on userId
     // For example:
