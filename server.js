@@ -49,9 +49,15 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
 .then(async () => {
   console.log('Connected to MongoDB');
 
+  const users = {};
+
   // Event listener for incoming WebSocket connections
   io.on('connection', (socket) => {
     console.log('New Socket.IO connection');
+
+    socket.on('storeUserId', (userId) => {
+      users[userId] = socket.id;
+    });
 
     // Event for Converstaion Count
     socket.on('Conversation-count', async (userId, cb) => {
@@ -64,7 +70,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         }
     
         // Fetch unread Converstaion count for the user from the database
-        const unreadConversationCount = await getConversationCount(user._id);
+        const unreadConversationCount = await getConversationCount(user._id || user.id);
     
         // Emit the unread Conversation count to the client
         cb(unreadConversationCount);
@@ -92,6 +98,32 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
 
         // Emit the unread message count to the client
         cb(unreadMessageCount);
+      } catch (error) {
+        console.error('Error fetching Message count:', error);
+      }
+    });
+    // Event for New Convo Start
+    socket.on('new-convo', async (userId, companionId, ) => {
+      console.log('trying new convo')
+      try {
+        // Authenticate user based on userId
+        const theUser = await authenticateUserById(userId);
+        const theCompanion = await authenticateUserById(companionId);
+
+        // Check if both sender and receiver exist
+        if (!theUser || !theCompanion) {
+          console.log('User or Companion not authenticated');
+          return;
+        }
+
+        const unreadConversationCount = await getConversationCount(theCompanion._id || theCompanion.id);
+
+        const socketId = users[companionId];
+        if (socketId) {
+          console.log('this is socket id of companion', socketId)
+          io.to(socketId).emit('convo-count-update', unreadConversationCount);
+        }
+
       } catch (error) {
         console.error('Error fetching Message count:', error);
       }
@@ -156,6 +188,10 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
     socket.on('disconnect', () => {
       console.log('Socket.IO connection disconnected');
       // Additional cleanup or logging if needed
+      const userId = Object.keys(users).find(key => users[key] === socket.id);
+      if (userId) {
+        delete users[userId];
+      }
     });
   });
 
