@@ -49,14 +49,18 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
 .then(async () => {
   console.log('Connected to MongoDB');
 
-  const users = {};
+  const usersForConvos = {};
+  const usersForMessages = {};
 
   // Event listener for incoming WebSocket connections
   io.on('connection', (socket) => {
     console.log('New Socket.IO connection');
 
-    socket.on('storeUserId', (userId) => {
-      users[userId] = socket.id;
+    socket.on('storeUserIdForConvos', (userId) => {
+      usersForConvos[userId] = socket.id;
+    });
+    socket.on('storeUserIdForMessages', (userId) => {
+      usersForMessages[userId] = socket.id;
     });
 
     // Event for Converstaion Count
@@ -117,11 +121,17 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         }
 
         const unreadConversationCount = await getConversationCount(theCompanion._id || theCompanion.id);
+        const unreadMessageCount = await getMessageCount(theCompanion._id || theCompanion.id, theUser._id || theUser.id);
 
-        const socketId = users[companionId];
+        const socketId = usersForConvos[companionId];
         if (socketId) {
-          console.log('this is socket id of companion', socketId)
+          console.log('this is socket id of companion for convos', socketId);
           io.to(socketId).emit('convo-count-update', unreadConversationCount);
+        }
+        const socketId2 = usersForMessages[companionId];
+        if (socketId2) {
+          console.log('this is socket id of companion for messages', socketId);
+          io.to(socketId2).emit('message-count-update', theUser.id || theUser._id, unreadMessageCount);
         }
 
       } catch (error) {
@@ -188,9 +198,13 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
     socket.on('disconnect', () => {
       console.log('Socket.IO connection disconnected');
       // Additional cleanup or logging if needed
-      const userId = Object.keys(users).find(key => users[key] === socket.id);
+      const userId = Object.keys(usersForConvos).find(key => usersForConvos[key] === socket.id);
       if (userId) {
-        delete users[userId];
+        delete usersForConvos[userId];
+      }
+      const userId2 = Object.keys(usersForMessages).find(key => usersForMessages[key] === socket.id);
+      if (userId2) {
+        delete usersForMessages[userId2];
       }
     });
   });
