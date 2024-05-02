@@ -146,7 +146,7 @@ router.get('/messages/:userId', async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    const conversations = [];
+    const messages = [];
 
     // Find unread messages for the user
     const Convos = await Message.find({
@@ -167,12 +167,12 @@ router.get('/messages/:userId', async (req, res) => {
           read: msg.read
           // Add other fields you need from the message
         };
-        conversations.push(conversation);
+        messages.push(conversation);
       });
     });
 
     // Send the conversations array as a response
-    res.status(200).json({ conversations: conversations });
+    res.status(200).json({ messages: messages });
   } catch (error) {
     // Handle any errors
     console.error('Error finding unread messages:', error);
