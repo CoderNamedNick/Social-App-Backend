@@ -217,5 +217,47 @@ router.get('/Conversations/:userId', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+// GET route to find a message by its ID
+router.get('/messageById/:messageId', async (req, res) => {
+  try {
+    // Extract messageId from request parameters
+    const messageId = req.params.messageId;
+
+    // Check if the message exists
+    const message = await Message.findById(messageId);
+    if (!message) {
+      return res.status(404).json({ error: 'Message not found' });
+    }
+
+    // Send the message as a response
+    res.status(200).json({ message });
+  } catch (error) {
+    // Handle any errors
+    console.error('Error finding message:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+// GET route to find a message by its ID and send only Messages back
+router.get('/messagesById/id/:messageId', async (req, res) => {
+  try {
+    // Extract messageId from request parameters
+    const messageId = req.params.messageId;
+
+    // Check if the message exists
+    const message = await Message.findById(messageId);
+    if (!message) {
+      return res.status(404).json({ error: 'Message not found' });
+    }
+
+    const messages = message.messages
+
+    // Send the message as a response
+    res.status(200).json({ messages });
+  } catch (error) {
+    // Handle any errors
+    console.error('Error finding message:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 module.exports = router

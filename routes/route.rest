@@ -67,3 +67,9 @@ Content-Type: application/json
   "receiverId": "6625180d070060c32df0178f",
   "content": "This is the message content.3"
 }
+
+###
+GET  http://localhost:5000/Messages/messages/6625180d070060c32df0178f
+
+###
+GET http://localhost:5000/Messages/messageById/6632430298c63fa91bd8abbb
