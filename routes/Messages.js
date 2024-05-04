@@ -71,6 +71,7 @@ router.post('/messages/:senderId/send/:receiverId', async (req, res) => {
         UserNames: [senderUsername, receiverUsername], // Add usernames
         messages: [{
           sender: senderId,
+          senderUsername: senderUsername,
           receiver: receiverId,
           content: content,
         }]

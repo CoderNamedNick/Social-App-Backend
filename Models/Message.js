@@ -5,6 +5,7 @@ const messageSchema = new mongoose.Schema({
   UserNames: [{type: String, required: true }],
   messages: [{
     sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    senderUsername: {type: String, required: true },
     receiver: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }],
     content: { type: String, required: true },
     timestamp: { type: Date, default: Date.now },
