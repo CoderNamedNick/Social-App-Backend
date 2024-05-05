@@ -88,6 +88,7 @@ router.post('/messages/:senderId/send/:receiverId', async (req, res) => {
       // Add the new message to the conversation
       conversation.messages.push({
         sender: senderId,
+        senderUsername: senderUsername,
         receiver: receiverId,
         content: content
       });
