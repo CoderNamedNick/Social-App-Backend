@@ -51,6 +51,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
 
   const usersForConvos = {};
   const usersForMessages = {};
+  const usersForInTheMessages = {};
 
   // Event listener for incoming WebSocket connections
   io.on('connection', (socket) => {
@@ -61,6 +62,10 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
     });
     socket.on('storeUserIdForMessages', (userId) => {
       usersForMessages[userId] = socket.id;
+    });
+    socket.on('storeUserIdForInTheMessages', (userId) => {
+      console.log('stored id')
+      usersForInTheMessages[userId] = socket.id;
     });
 
     // Event for Converstaion Count
@@ -139,60 +144,46 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
       }
     });
 
-    // Event listener for incoming messages
-    io.on('sending-A-Message', async (senderId, receiverId, messageContent) => {
+   // Event listener Sent Messaegs
+    socket.on('sending-A-New-Message', async (senderId, receiverId, messageContent ) => {
       console.log('trying message')
       try {
-        console.log('trying message')
-        // Authenticate sender and receiver based on their IDs
-        const sender = await authenticateUserById(senderId);
-        const receiver = await authenticateUserById(receiverId);
+
+        // Authenticate user based on userId
+        const theUser = await authenticateUserById(senderId);
+        const theCompanion = await authenticateUserById(receiverId);
 
         // Check if both sender and receiver exist
-        if (!sender || !receiver) {
-          console.log('Sender or receiver not authenticated');
+        if (!theUser || !theCompanion) {
+          console.log('User or Companion not authenticated');
           return;
         }
 
-        // Check if there's an existing conversation between sender and receiver
-        let conversation = await Message.findOne({
-          messengers: { $all: [senderId, receiverId] }
-        });
-
-        // If no existing conversation, create a new one
-        if (!conversation) {
-          conversation = new Message({
-            messengers: [senderId, receiverId],
-            messages: []
-          });
-        }
-
-        // Create a new message object
-        const newMessage = {
-          sender: senderId,
-          receiver: receiverId,
-          content: messageContent,
-          timestamp: new Date(), // You can add a timestamp for the message
-          read: false,
-        };
-
-        // Add the new message to the conversation
-        conversation.messages.push(newMessage);
-
-        // Save the conversation to the database
-        await conversation.save();
-
-        // Emit the new message to both sender and receiver
-        io.to(senderId).emit('new-message', newMessage);
-        io.to(receiverId).emit('new-message', newMessage);
-        io.emit('Converstaion-count', senderId)
-        io.emit('message-count', senderId, receiverId );
+        const Conversation = await SendAndUpdateMessages(senderId, receiverId, messageContent)
+        const unreadMessageCount = await getMessageCount(theCompanion._id || theCompanion.id, theUser._id || theUser.id);
+        
+        //now emit the new conversation back to users
+        const socketId = usersForInTheMessages[receiverId];
+          if (socketId) {
+            console.log('this is socket id of companion', socketId);
+            io.to(socketId).emit('New-Message-update', Conversation);
+          }
+          const socketId2 = usersForInTheMessages[senderId];
+          if (socketId2) {
+            console.log('this is socket id of user', socketId2);
+            io.to(socketId2).emit('New-Message-update', Conversation);
+          }
+          const socketId3 = usersForMessages[theCompanion._id || theCompanion.id];
+          if (socketId3) {
+            console.log('this is socket id of companion for messages', socketId);
+            io.to(socketId3).emit('message-count-update', theUser.id || theUser._id, unreadMessageCount);
+          }
 
         console.log('Message sent successfully.');
       } catch (error) {
         console.error('Error sending message:', error);
       }
-  });
+    });
 
     // Event listener for WebSocket connection closure
     socket.on('disconnect', () => {
@@ -261,6 +252,58 @@ async function getMessageCount(userId, companionId) {
     });
 
     return unreadCount;
+  } catch (error) {
+    throw error;
+  }
+}
+// Function to fetchmessaegs between users
+async function SendAndUpdateMessages(userId, companionId, content) {
+  try {
+  
+    // Check if sender and receiver exist
+    const sender = await User.findById(userId);
+    const receiver = await User.findById(companionId);
+
+    if (!sender || !receiver) {
+      console.log('Sender or Receiver not found')
+      return
+    }
+
+    // Get the usernames of sender and receiver
+    const senderUsername = sender.username;
+    const receiverUsername = receiver.username;
+
+    // Check if there's an existing conversation between sender and receiver
+    let conversation = await Message.findOne({
+      messengers: { $all: [userId, companionId] },
+      UserNames: { $all: [senderUsername, receiverUsername] },
+    });
+
+    // If no existing conversation, create a new one
+    if (!conversation) {
+      console.log('no previous Convos')
+    }else {
+      // Update the usernames if they are not already present
+      if (!conversation.UserNames.includes(senderUsername)) {
+        conversation.UserNames.push(senderUsername);
+      }
+      if (!conversation.UserNames.includes(receiverUsername)) {
+        conversation.UserNames.push(receiverUsername);
+      }
+
+      // Add the new message to the conversation
+      conversation.messages.push({
+        sender: userId,
+        senderUsername: senderUsername,
+        receiver: companionId,
+        content: content
+      });
+    }
+
+    // Save the conversation to the database
+    await conversation.save();
+
+    return conversation;
   } catch (error) {
     throw error;
   }
