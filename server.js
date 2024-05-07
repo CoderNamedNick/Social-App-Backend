@@ -92,6 +92,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
    // Event for message Count
     socket.on('message-count', async (userId, companionId, cb) => {
       try {
+        console.log('trying message count1')
         // Authenticate user based on userId
         const theUser = await authenticateUserById(userId);
         const theCompanion = await authenticateUserById(companionId);
@@ -111,6 +112,29 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         console.error('Error fetching Message count:', error);
       }
     });
+       // Event for message Count
+       socket.on('message-count2', async (userId, companionId, cb) => {
+        try {
+          console.log('trying message count2')
+          // Authenticate user based on userId
+          const theUser = await authenticateUserById(userId);
+          const theCompanion = await authenticateUserById(companionId);
+  
+          // Check if both sender and receiver exist
+          if (!theUser || !theCompanion) {
+            console.log('User or Companion not authenticated');
+            return;
+          }
+  
+          // Fetch unread message count for the user from the database
+          const unreadMessageCount = await getMessageCount(theUser._id || theUser.id, theCompanion._id || theCompanion.id);
+  
+          // Emit the unread message count to the client
+          cb(unreadMessageCount);
+        } catch (error) {
+          console.error('Error fetching Message count:', error);
+        }
+      });
     // Event for New Convo Start
     socket.on('new-convo', async (userId, companionId, ) => {
       console.log('trying new convo')
@@ -304,6 +328,32 @@ async function SendAndUpdateMessages(userId, companionId, content) {
     await conversation.save();
 
     return conversation;
+  } catch (error) {
+    throw error;
+  }
+}
+// Function to Mark Messages as read
+async function MarkAsRead(userId, companionId) {
+  try {
+    // Find the conversation between the user and the companion
+    const conversation = await Message.findOne({
+      messengers: { $all: [userId, companionId] }
+    });
+
+    // If conversation doesn't exist or no messages, return 0
+    if (!conversation || conversation.messages.length === 0) {
+      return 0;
+    }
+    
+     // Mark each message as read
+    conversation.messages.forEach(async message => {
+      message.read = true;
+      await message.save(); // Save the updated message
+    });
+
+    let newNotifCount = 0;
+
+    return newNotifCount;
   } catch (error) {
     throw error;
   }
