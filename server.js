@@ -208,6 +208,36 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         console.error('Error sending message:', error);
       }
     });
+    // Event for message Count
+    socket.on('Mark-As-Read', async (userId, companionId ) => {
+      try {
+        console.log('trying to mark messages as read')
+        // Authenticate user based on userId
+        const theUser = await authenticateUserById(userId);
+        const theCompanion = await authenticateUserById(companionId);
+
+        // Check if both sender and receiver exist
+        if (!theUser || !theCompanion) {
+          console.log('User or Companion not authenticated');
+          return;
+        }
+
+        // Fetch unread message count for the user from the database
+        const NewUnreadNotifNumber = await MarkAsRead(theUser._id || theUser.id, theCompanion._id || theCompanion.id);
+
+        //Should be zero and sending to user
+
+        // Emit the unread message count to the client
+
+        const socketId2 = usersForInTheMessages[theUser._id || theUser.id];
+          if (socketId2) {
+            console.log('this is socket id of companion', socketId2);
+            io.to(socketId2).emit('Read-update', NewUnreadNotifNumber);
+          }
+      } catch (error) {
+        console.error('Error fetching Message count:', error);
+      }
+    });
 
     // Event listener for WebSocket connection closure
     socket.on('disconnect', () => {
@@ -344,14 +374,18 @@ async function MarkAsRead(userId, companionId) {
     if (!conversation || conversation.messages.length === 0) {
       return 0;
     }
-    
-     // Mark each message as read
-    conversation.messages.forEach(async message => {
-      message.read = true;
-      await message.save(); // Save the updated message
-    });
 
+    // Mark each message as read where the sender is not the current user
     let newNotifCount = 0;
+    for (const message of conversation.messages) {
+      if (message.sender !== userId && !message.read) {
+        message.read = true;
+        await message.save({ suppressWarning: true }); // Suppress Mongoose warning
+      }
+    }
+
+    // Save the updated conversation
+    await conversation.save({ suppressWarning: true }); // Suppress Mongoose warning
 
     return newNotifCount;
   } catch (error) {
