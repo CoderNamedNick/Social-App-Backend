@@ -12,7 +12,7 @@ const guildSchema = new mongoose.Schema({
   guildDate: { type: Date, default: Date.now },
   joinedTravelers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   bio: { type: String, required: true },
-  guildPost: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Post' }],
+  guildPost: [{ type: mongoose.Schema.Types.ObjectId, ref: 'GuildPost' }],
   RequestToJoin: {type: Boolean, required: true},
   Findable: {type: Boolean, required: true},
   guildJoinRequest: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
