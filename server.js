@@ -88,7 +88,25 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         console.error('Error fetching Conversation count:', error);
       }
     });
-
+    // Event for all Unread Messages Count
+    socket.on('All-Unread-count', async (userId, cb) => {
+      try {
+        // Authenticate user based on userId
+        const user = await authenticateUserById(userId);
+        if (!user) {
+          console.log('User not authenticated');
+          return;
+        }
+    
+        // Fetch unread Converstaion count for the user from the database
+        const allunreadmessagesCount = await getAllUnreadMessagesCount(user._id || user.id);
+        // Emit the unread Conversation count to the client
+        cb(allunreadmessagesCount);
+        console.log('sent All Unread response');
+      } catch (error) {
+        console.error('Error fetching Conversation count:', error);
+      }
+    });
    // Event for message Count
     socket.on('message-count', async (userId, companionId, cb) => {
       try {
@@ -128,7 +146,12 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
   
           // Fetch unread message count for the user from the database
           const unreadMessageCount = await getMessageCount(theUser._id || theUser.id, theCompanion._id || theCompanion.id);
-  
+          
+          const socketId4 = usersForConvos[theCompanion._id || theCompanion.id];
+          if (socketId4) {
+            console.log('this is socket id 4', socketId4);
+            io.to(socketId4).emit('allunreadupdate', unreadMessageCount);
+          }
           // Emit the unread message count to the client
           cb(unreadMessageCount);
         } catch (error) {
@@ -156,6 +179,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         if (socketId) {
           console.log('this is socket id of companion for convos', socketId);
           io.to(socketId).emit('convo-count-update', unreadConversationCount);
+          io.to(socketId).emit('allunreadupdate', NewUnreadNotifNumber);
         }
         const socketId2 = usersForMessages[companionId];
         if (socketId2) {
@@ -202,6 +226,11 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
             console.log('this is socket id of companion for messages', socketId);
             io.to(socketId3).emit('message-count-update', theUser.id || theUser._id, unreadMessageCount);
           }
+          const socketId4 = usersForConvos[theCompanion._id || theCompanion.id];
+          if (socketId4) {
+            console.log('this is socket id 4', socketId4);
+            io.to(socketId4).emit('allunreadupdate', unreadMessageCount);
+          }
 
         console.log('Message sent successfully.');
       } catch (error) {
@@ -223,15 +252,19 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         }
 
         // Fetch unread message count for the user from the database
-        const NewUnreadNotifNumber = await MarkAsRead(theUser._id || theUser.id, theCompanion._id || theCompanion.id);
+        const NewUnreadNotifNumber = await MarkAsRead(theUser._id || theUser.id, theUser.username ,theCompanion._id || theCompanion.id);
 
         //Should be zero and sending to user
 
         // Emit the unread message count to the client
-
+        const socketId = usersForConvos[theUser._id || theUser.id];
+          if (socketId) {
+            console.log('this is socket id of user', socketId);
+            io.to(socketId).emit('allunreadupdate', NewUnreadNotifNumber);
+          }
         const socketId2 = usersForInTheMessages[theUser._id || theUser.id];
           if (socketId2) {
-            console.log('this is socket id of companion', socketId2);
+            console.log('this is socket id of user', socketId2);
             io.to(socketId2).emit('Read-update', NewUnreadNotifNumber);
           }
       } catch (error) {
@@ -310,6 +343,37 @@ async function getMessageCount(userId, companionId) {
     throw error;
   }
 }
+// Function to fetch unread message count between a user and a companion
+async function getAllUnreadMessagesCount(userId) {
+  try {
+    // Find all conversations where the user is not the sender
+    const conversations = await Message.find({
+      messengers: userId, // User is a messenger
+    });
+
+    // If no conversations found, return 0
+    if (!conversations || conversations.length === 0) {
+      console.log('no convos meet this criteria')
+      return 0;
+    }
+
+    // Count unread messages across all conversations
+    let unreadCount = 0;
+    conversations.forEach(conversation => {
+      // Iterate through messages in each conversation
+      conversation.messages.forEach(message => {
+        // Check if the user is the receiver, message is unread, and user is not the sender
+        if (message.receiver.includes(userId) && !message.read && !message.sender.equals(userId)) {
+          unreadCount++;
+        }
+      });
+    });
+
+    return unreadCount;
+  } catch (error) {
+    throw error;
+  }
+}
 // Function to fetchmessaegs between users
 async function SendAndUpdateMessages(userId, companionId, content) {
   try {
@@ -363,7 +427,7 @@ async function SendAndUpdateMessages(userId, companionId, content) {
   }
 }
 // Function to Mark Messages as read
-async function MarkAsRead(userId, companionId) {
+async function MarkAsRead(userId, userName,companionId) {
   try {
     // Find the conversation between the user and the companion
     const conversation = await Message.findOne({
@@ -378,7 +442,7 @@ async function MarkAsRead(userId, companionId) {
     // Mark each message as read where the sender is not the current user
     let newNotifCount = 0;
     for (const message of conversation.messages) {
-      if (message.sender !== userId && !message.read) {
+      if (message.sender !== userId && !message.read && message.senderUsername !== userName) {
         message.read = true;
         await message.save({ suppressWarning: true }); // Suppress Mongoose warning
       }
