@@ -23,6 +23,62 @@ router.get('/id/:id', getGuildByID, (req, res) => {
   res.json(res.guild);
 });
 
+//get all users associated with guild
+router.get('/JoinedTravelers/:id', async (req, res) => {
+  const guildId = req.params.id;
+
+  try {
+    const guild = await Guild.findById(guildId);
+    
+    if (!guild) {
+      return res.status(404).json({ message: 'Guild not found' });
+    }
+
+    const guildElders = [];
+    const guildMembers = [];
+
+    const Owner = await User.findById(guild.guildOwner);
+
+    const guildOwner = {
+      id: Owner.id || Owner._id,
+      UserName: Owner.username,
+      AccPrivate: Owner.AccPrivate
+    }
+
+    // Fetch guild members
+    for (const traveler of guild.joinedTravelers) {
+      try {
+        const traveler1 = await User.findById(traveler);
+        guildMembers.push({
+          id: traveler1.id || traveler1._id,
+          UserName: traveler1.username,
+          AccPrivate: traveler1.AccPrivate
+        });
+      } catch (err) {
+        console.error('Error fetching guild member:', err.message);
+      }
+    }
+
+    // Fetch guild elders
+    for (const Elder of guild.guildElders) {
+      try {
+        const Elder1 = await User.findById(Elder);
+        guildElders.push({
+          id: Elder1.id || Elder1._id,
+          UserName: Elder1.username,
+          AccPrivate: Elder1.AccPrivate,
+        });
+      } catch (err) {
+        console.error('Error fetching guild elder:', err.message);
+      }
+    }
+    
+    res.status(200).json({ message: 'Arrays with usernames', Owner:guildOwner , Elders: guildElders, Members: guildMembers });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
 // Create a guild
 router.post('/:userId/make-guild', async (req, res) => {
   const userId = req.params.userId;
