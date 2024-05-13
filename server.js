@@ -14,6 +14,7 @@ const Message = require('./Models/Message');
 const userRouter = require('./routes/Users');
 const guildRouter = require('./routes/Guilds');
 const messageRouter = require('./routes/Messages');
+const Guild = require('./Models/Guild');
 
 // Create Express application
 const app = express();
@@ -68,6 +69,8 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
       usersForInTheMessages[userId] = socket.id;
     });
 
+    //MESSAGES AND CONVOS SOCKETS
+
     // Event for Converstaion Count
     socket.on('Conversation-count', async (userId, cb) => {
       try {
@@ -110,63 +113,52 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
    // Event for message Count
     socket.on('message-count', async (userId, companionId, cb) => {
       try {
-        console.log('trying message count1')
-        // Authenticate user based on userId
         const theUser = await authenticateUserById(userId);
         const theCompanion = await authenticateUserById(companionId);
 
-        // Check if both sender and receiver exist
         if (!theUser || !theCompanion) {
           console.log('User or Companion not authenticated');
           return;
         }
 
-        // Fetch unread message count for the user from the database
         const unreadMessageCount = await getMessageCount(theUser._id || theUser.id, theCompanion._id || theCompanion.id);
 
-        // Emit the unread message count to the client
         cb(unreadMessageCount);
       } catch (error) {
         console.error('Error fetching Message count:', error);
       }
     });
        // Event for message Count
-       socket.on('message-count2', async (userId, companionId, cb) => {
-        try {
-          console.log('trying message count2')
-          // Authenticate user based on userId
-          const theUser = await authenticateUserById(userId);
-          const theCompanion = await authenticateUserById(companionId);
-  
-          // Check if both sender and receiver exist
-          if (!theUser || !theCompanion) {
-            console.log('User or Companion not authenticated');
-            return;
-          }
-  
-          // Fetch unread message count for the user from the database
-          const unreadMessageCount = await getMessageCount(theUser._id || theUser.id, theCompanion._id || theCompanion.id);
-          
-          const socketId4 = usersForConvos[theCompanion._id || theCompanion.id];
-          if (socketId4) {
-            console.log('this is socket id 4', socketId4);
-            io.to(socketId4).emit('allunreadupdate', unreadMessageCount);
-          }
-          // Emit the unread message count to the client
-          cb(unreadMessageCount);
-        } catch (error) {
-          console.error('Error fetching Message count:', error);
+    socket.on('message-count2', async (userId, companionId, cb) => {
+      try {
+        const theUser = await authenticateUserById(userId);
+        const theCompanion = await authenticateUserById(companionId);
+
+        if (!theUser || !theCompanion) {
+          console.log('User or Companion not authenticated');
+          return;
         }
-      });
+
+        const unreadMessageCount = await getMessageCount(theUser._id || theUser.id, theCompanion._id || theCompanion.id);
+        
+        const socketId4 = usersForConvos[theCompanion._id || theCompanion.id];
+        if (socketId4) {
+          console.log('this is socket id 4', socketId4);
+          io.to(socketId4).emit('allunreadupdate', unreadMessageCount);
+        }
+
+        cb(unreadMessageCount);
+      } catch (error) {
+        console.error('Error fetching Message count:', error);
+      }
+    });
     // Event for New Convo Start
     socket.on('new-convo', async (userId, companionId, ) => {
       console.log('trying new convo')
       try {
-        // Authenticate user based on userId
         const theUser = await authenticateUserById(userId);
         const theCompanion = await authenticateUserById(companionId);
 
-        // Check if both sender and receiver exist
         if (!theUser || !theCompanion) {
           console.log('User or Companion not authenticated');
           return;
@@ -194,14 +186,10 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
 
    // Event listener Sent Messaegs
     socket.on('sending-A-New-Message', async (senderId, receiverId, messageContent ) => {
-      console.log('trying message')
       try {
-
-        // Authenticate user based on userId
         const theUser = await authenticateUserById(senderId);
         const theCompanion = await authenticateUserById(receiverId);
 
-        // Check if both sender and receiver exist
         if (!theUser || !theCompanion) {
           console.log('User or Companion not authenticated');
           return;
@@ -210,7 +198,6 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         const Conversation = await SendAndUpdateMessages(senderId, receiverId, messageContent)
         const unreadMessageCount = await getMessageCount(theCompanion._id || theCompanion.id, theUser._id || theUser.id);
         
-        //now emit the new conversation back to users
         const socketId = usersForInTheMessages[receiverId];
           if (socketId) {
             console.log('this is socket id of companion', socketId);
@@ -240,23 +227,16 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
     // Event for message Count
     socket.on('Mark-As-Read', async (userId, companionId ) => {
       try {
-        console.log('trying to mark messages as read')
-        // Authenticate user based on userId
         const theUser = await authenticateUserById(userId);
         const theCompanion = await authenticateUserById(companionId);
 
-        // Check if both sender and receiver exist
         if (!theUser || !theCompanion) {
           console.log('User or Companion not authenticated');
           return;
         }
 
-        // Fetch unread message count for the user from the database
         const NewUnreadNotifNumber = await MarkAsRead(theUser._id || theUser.id, theUser.username ,theCompanion._id || theCompanion.id);
 
-        //Should be zero and sending to user
-
-        // Emit the unread message count to the client
         const socketId = usersForConvos[theUser._id || theUser.id];
           if (socketId) {
             console.log('this is socket id of user', socketId);
@@ -269,6 +249,83 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
           }
       } catch (error) {
         console.error('Error fetching Message count:', error);
+      }
+    });
+
+    //GUILD SOCKETS
+
+    // Event for sending whole guild
+    socket.on('update-all-guild', async (GuildId) => {
+      try {
+        const guild = await authenticateGuildById(GuildId);
+
+        if (!guild) {
+          console.log('guild not authenticated');
+          return;
+        }
+
+        io.emit('guild-update', guild)
+      } catch (error) {
+        console.error('Error fetching Message count:', error);
+      }
+    });
+
+    socket.on('update-to-elder', async (GuildId, TravelerId) => {
+      // check if this works pls
+      try {
+        // Authenticate the guild and traveler
+        const guild = await authenticateGuildById(GuildId);
+        const traveler = await authenticateUserById(TravelerId);
+    
+        if (!guild || !traveler) {
+          console.log('Guild or traveler not authenticated');
+          return;
+        }
+    
+        // Promote the traveler to an elder
+        await promotetoelder(guild, traveler);
+    
+        // Fetch the updated guild data
+        const updatedGuild = await Guild.findById(GuildId);
+    
+        // Fetch the updated lists of guild members and elders
+        const Members = await Promise.all(updatedGuild.joinedTravelers.map(async (travelerId) => {
+          const traveler = await User.findById(travelerId);
+          return {
+            id: traveler.id || traveler._id,
+            UserName: traveler.username,
+            AccPrivate: traveler.AccPrivate
+          };
+        }));
+    
+        const Elders = await Promise.all(updatedGuild.guildElders.map(async (elderId) => {
+          const elder = await User.findById(elderId);
+          return {
+            id: elder.id || elder._id,
+            UserName: elder.username,
+            AccPrivate: elder.AccPrivate
+          };
+        }));
+
+        const theOwner = await User.findById(updatedGuild.guildOwner);
+    
+        const Owner = {
+          id: theOwner.id || theOwner._id,
+          UserName: theOwner.username,
+          AccPrivate: theOwner.AccPrivate
+        }
+    
+        // Combine guildMembers and guildElders into a single variable
+        const guildMembersWithElders = {
+          Members,
+          Elders,
+          Owner
+        };
+    
+        // Emit the updated guild data along with the combined list of guild members and elders to all clients
+        io.emit('promote-update', updatedGuild, guildMembersWithElders);
+      } catch (error) {
+        console.error('Error updating to elder:', error);
       }
     });
 
@@ -295,9 +352,17 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
 // Function to authenticate user based on id
 async function authenticateUserById(userId) {
   try {
-    // Fetch user from the database based on userId
     const foundUser = await User.findById(userId);
     return foundUser;
+  } catch (error) {
+    throw error;
+  }
+}
+// Function to authenticate guild based on id
+async function authenticateGuildById(GuildId) {
+  try {
+    const foundguild = await Guild.findById(GuildId);
+    return foundguild;
   } catch (error) {
     throw error;
   }
@@ -305,8 +370,6 @@ async function authenticateUserById(userId) {
 // Function to fetch unread conversation count for a user
 async function getConversationCount(userId) {
   try {
-    // Your logic to fetch unread message count from the database based on userId
-    // For example:
     const unreadMessages = await Message.find({
       messengers: userId,
       'messages.sender': { $ne: userId },
@@ -320,17 +383,14 @@ async function getConversationCount(userId) {
 // Function to fetch unread message count between a user and a companion
 async function getMessageCount(userId, companionId) {
   try {
-    // Find the conversation between the user and the companion
     const conversation = await Message.findOne({
       messengers: { $all: [userId, companionId] }
     });
 
-    // If conversation doesn't exist or no messages, return 0
     if (!conversation || conversation.messages.length === 0) {
       return 0;
     }
 
-    // Count unread messages between the user and the companion
     let unreadCount = 0;
     conversation.messages.forEach(message => {
       if (message.receiver.includes(userId) && message.sender.equals(companionId) && !message.read) {
@@ -346,18 +406,15 @@ async function getMessageCount(userId, companionId) {
 // Function to fetch unread message count between a user and a companion
 async function getAllUnreadMessagesCount(userId) {
   try {
-    // Find all conversations where the user is not the sender
     const conversations = await Message.find({
       messengers: userId, // User is a messenger
     });
 
-    // If no conversations found, return 0
     if (!conversations || conversations.length === 0) {
       console.log('no convos meet this criteria')
       return 0;
     }
 
-    // Count unread messages across all conversations
     let unreadCount = 0;
     conversations.forEach(conversation => {
       // Iterate through messages in each conversation
@@ -377,8 +434,6 @@ async function getAllUnreadMessagesCount(userId) {
 // Function to fetchmessaegs between users
 async function SendAndUpdateMessages(userId, companionId, content) {
   try {
-  
-    // Check if sender and receiver exist
     const sender = await User.findById(userId);
     const receiver = await User.findById(companionId);
 
@@ -387,17 +442,14 @@ async function SendAndUpdateMessages(userId, companionId, content) {
       return
     }
 
-    // Get the usernames of sender and receiver
     const senderUsername = sender.username;
     const receiverUsername = receiver.username;
 
-    // Check if there's an existing conversation between sender and receiver
     let conversation = await Message.findOne({
       messengers: { $all: [userId, companionId] },
       UserNames: { $all: [senderUsername, receiverUsername] },
     });
 
-    // If no existing conversation, create a new one
     if (!conversation) {
       console.log('no previous Convos')
     }else {
@@ -418,7 +470,6 @@ async function SendAndUpdateMessages(userId, companionId, content) {
       });
     }
 
-    // Save the conversation to the database
     await conversation.save();
 
     return conversation;
@@ -429,12 +480,10 @@ async function SendAndUpdateMessages(userId, companionId, content) {
 // Function to Mark Messages as read
 async function MarkAsRead(userId, userName,companionId) {
   try {
-    // Find the conversation between the user and the companion
     const conversation = await Message.findOne({
       messengers: { $all: [userId, companionId] }
     });
 
-    // If conversation doesn't exist or no messages, return 0
     if (!conversation || conversation.messages.length === 0) {
       return 0;
     }
@@ -454,5 +503,21 @@ async function MarkAsRead(userId, userName,companionId) {
     return newNotifCount;
   } catch (error) {
     throw error;
+  }
+}
+//update meber to elder
+async function promotetoelder(guild, traveler) {
+  try {
+    // Remove traveler from joinedTravelers array
+    guild.joinedTravelers = guild.joinedTravelers.filter(member => member.id !== traveler.id);
+
+    // Add traveler to guildElders array
+    guild.guildElders.push(traveler);
+
+    // Save the updated guild data to the database
+    await guild.save();
+
+  } catch (error) {
+    throw new Error('Error promoting traveler to elder:', error);
   }
 }
