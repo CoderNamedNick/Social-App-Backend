@@ -273,6 +273,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
     socket.on('update-to-elder', async (GuildId, TravelerId) => {
       // check if this works pls
       try {
+        console.log('trying update to elder')
         // Authenticate the guild and traveler
         const guild = await authenticateGuildById(GuildId);
         const traveler = await authenticateUserById(TravelerId);
@@ -283,7 +284,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         }
     
         // Promote the traveler to an elder
-        await promotetoelder(guild, traveler);
+        await promoteToElder(guild, traveler);
     
         // Fetch the updated guild data
         const updatedGuild = await Guild.findById(GuildId);
@@ -505,11 +506,18 @@ async function MarkAsRead(userId, userName,companionId) {
     throw error;
   }
 }
-//update meber to elder
-async function promotetoelder(guild, traveler) {
+async function promoteToElder(guild, traveler) {
   try {
-    // Remove traveler from joinedTravelers array
-    guild.joinedTravelers = guild.joinedTravelers.filter(member => member.id !== traveler.id);
+    // Find the index of the traveler in the joinedTravelers array
+    console.log(traveler.id)
+    const travelerIndex = guild.joinedTravelers.findIndex(member => member.id.toString() === traveler.id.toString() || member._id.toString() === traveler.id.toString());
+
+    // If the traveler is found in the joinedTravelers array, remove them
+    if (travelerIndex !== -1) {
+      guild.joinedTravelers.splice(travelerIndex, 1); // Remove the traveler
+    } else {
+      throw new Error('Traveler not found in joined members.');
+    }
 
     // Add traveler to guildElders array
     guild.guildElders.push(traveler);
@@ -517,7 +525,9 @@ async function promotetoelder(guild, traveler) {
     // Save the updated guild data to the database
     await guild.save();
 
+    console.log(`Promoted traveler ${traveler.id} to elder successfully.`);
   } catch (error) {
-    throw new Error('Error promoting traveler to elder:', error);
+    console.error('Error promoting traveler to elder:', error);
+    throw error; // rethrow the error to propagate it up
   }
 }
