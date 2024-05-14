@@ -68,6 +68,12 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
       console.log('stored id')
       usersForInTheMessages[userId] = socket.id;
     });
+    socket.on('joinGuildRoom', (guildId) => {
+      console.log('joined room', guildId);
+      // Store the guildId as part of the socket's data
+      socket.guildRoom = guildId;
+      socket.join(guildId); // Join the room associated with the guild
+    });
 
     //MESSAGES AND CONVOS SOCKETS
 
@@ -270,7 +276,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
       }
     });
 
-    socket.on('update-to-elder', async (GuildId, TravelerId) => {
+    socket.on('update-to-elder', async (GuildId, TravelerId, callback) => {
       // check if this works pls
       try {
         console.log('trying update to elder')
@@ -323,8 +329,66 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
           Owner
         };
     
-        // Emit the updated guild data along with the combined list of guild members and elders to all clients
-        io.emit('promote-update', updatedGuild, guildMembersWithElders);
+        callback(updatedGuild, guildMembersWithElders)
+      } catch (error) {
+        console.error('Error updating to elder:', error);
+      }
+    });
+    //demotes elder to member
+    socket.on('demote-to-member', async (GuildId, TravelerId, callback) => {
+      // check if this works pls
+      try {
+        console.log('trying update to elder')
+        // Authenticate the guild and traveler
+        const guild = await authenticateGuildById(GuildId);
+        const traveler = await authenticateUserById(TravelerId);
+    
+        if (!guild || !traveler) {
+          console.log('Guild or traveler not authenticated');
+          return;
+        }
+    
+        // Promote the traveler to an elder
+        await demoteToMember(guild, traveler);
+    
+        // Fetch the updated guild data
+        const updatedGuild = await Guild.findById(GuildId);
+    
+        // Fetch the updated lists of guild members and elders
+        const Members = await Promise.all(updatedGuild.joinedTravelers.map(async (travelerId) => {
+          const traveler = await User.findById(travelerId);
+          return {
+            id: traveler.id || traveler._id,
+            UserName: traveler.username,
+            AccPrivate: traveler.AccPrivate
+          };
+        }));
+    
+        const Elders = await Promise.all(updatedGuild.guildElders.map(async (elderId) => {
+          const elder = await User.findById(elderId);
+          return {
+            id: elder.id || elder._id,
+            UserName: elder.username,
+            AccPrivate: elder.AccPrivate
+          };
+        }));
+
+        const theOwner = await User.findById(updatedGuild.guildOwner);
+    
+        const Owner = {
+          id: theOwner.id || theOwner._id,
+          UserName: theOwner.username,
+          AccPrivate: theOwner.AccPrivate
+        }
+    
+        // Combine guildMembers and guildElders into a single variable
+        const guildMembersWithElders = {
+          Members,
+          Elders,
+          Owner
+        };
+    
+        callback(updatedGuild, guildMembersWithElders)
       } catch (error) {
         console.error('Error updating to elder:', error);
       }
@@ -341,6 +405,13 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
       const userId2 = Object.keys(usersForMessages).find(key => usersForMessages[key] === socket.id);
       if (userId2) {
         delete usersForMessages[userId2];
+      }
+      if (socket.guildRoom) {
+        console.log('left room', socket.guildRoom);
+        // Leave the room associated with the guild
+        socket.leave(socket.guildRoom);
+        // Optionally, you can remove the guildRoom property from the socket
+        delete socket.guildRoom;
       }
     });
   });
@@ -528,6 +599,30 @@ async function promoteToElder(guild, traveler) {
     console.log(`Promoted traveler ${traveler.id} to elder successfully.`);
   } catch (error) {
     console.error('Error promoting traveler to elder:', error);
+    throw error; // rethrow the error to propagate it up
+  }
+}
+async function demoteToMember(guild, elder) {
+  try {
+    // Find the index of the elder in the guildElders array
+    const elderIndex = guild.guildElders.findIndex(member => member.id.toString() === elder.id.toString() || member._id.toString() === elder.id.toString());
+
+    // If the elder is found in the guildElders array, remove them
+    if (elderIndex !== -1) {
+      guild.guildElders.splice(elderIndex, 1); // Remove the elder
+    } else {
+      throw new Error('Elder not found in guild elders.');
+    }
+
+    // Add elder to joinedTravelers array
+    guild.joinedTravelers.push(elder);
+
+    // Save the updated guild data to the database
+    await guild.save();
+
+    console.log(`Demoted elder ${elder.id} to member successfully.`);
+  } catch (error) {
+    console.error('Error demoting elder to member:', error);
     throw error; // rethrow the error to propagate it up
   }
 }
