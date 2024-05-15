@@ -276,7 +276,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
       }
     });
 
-    socket.on('update-to-elder', async (GuildId, TravelerId, callback) => {
+    socket.on('update-to-elder', async (GuildId, TravelerId ) => {
       // check if this works pls
       try {
         console.log('trying update to elder')
@@ -297,14 +297,14 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
     
         // Fetch the updated guild members and elders
         const guildMembersWithElders = await getGuildMembersAndElders(updatedGuild);
-    
-        callback(updatedGuild, guildMembersWithElders)
+
+        io.to(GuildId).emit('memberUpdates', guildMembersWithElders);
       } catch (error) {
         console.error('Error updating to elder:', error);
       }
     });
     //demotes elder to member
-    socket.on('demote-to-member', async (GuildId, TravelerId, callback) => {
+    socket.on('demote-to-member', async (GuildId, TravelerId ) => {
       // check if this works pls
       try {
         console.log('trying update to elder')
@@ -326,7 +326,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         // Fetch the updated guild members and elders
         const guildMembersWithElders = await getGuildMembersAndElders(updatedGuild);
     
-        callback(updatedGuild, guildMembersWithElders)
+        io.to(GuildId).emit('memberUpdates', guildMembersWithElders);
       } catch (error) {
         console.error('Error updating to elder:', error);
       }
@@ -357,7 +357,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         const guildMembersWithElders = await getGuildMembersAndElders(updatedGuild);
     
         // Emit to everyone in the room that a user has joined
-        io.to(GuildId).emit('userJoinedGuildRoom', guildMembersWithElders);
+        io.to(GuildId).emit('memberUpdates', guildMembersWithElders);
       } catch (error) {
         console.error('Error updating to elder:', error);
       }
