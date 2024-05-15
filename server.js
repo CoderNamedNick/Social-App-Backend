@@ -291,43 +291,12 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
     
         // Promote the traveler to an elder
         await promoteToElder(guild, traveler);
-    
+
         // Fetch the updated guild data
         const updatedGuild = await Guild.findById(GuildId);
     
-        // Fetch the updated lists of guild members and elders
-        const Members = await Promise.all(updatedGuild.joinedTravelers.map(async (travelerId) => {
-          const traveler = await User.findById(travelerId);
-          return {
-            id: traveler.id || traveler._id,
-            UserName: traveler.username,
-            AccPrivate: traveler.AccPrivate
-          };
-        }));
-    
-        const Elders = await Promise.all(updatedGuild.guildElders.map(async (elderId) => {
-          const elder = await User.findById(elderId);
-          return {
-            id: elder.id || elder._id,
-            UserName: elder.username,
-            AccPrivate: elder.AccPrivate
-          };
-        }));
-
-        const theOwner = await User.findById(updatedGuild.guildOwner);
-    
-        const Owner = {
-          id: theOwner.id || theOwner._id,
-          UserName: theOwner.username,
-          AccPrivate: theOwner.AccPrivate
-        }
-    
-        // Combine guildMembers and guildElders into a single variable
-        const guildMembersWithElders = {
-          Members,
-          Elders,
-          Owner
-        };
+        // Fetch the updated guild members and elders
+        const guildMembersWithElders = await getGuildMembersAndElders(updatedGuild);
     
         callback(updatedGuild, guildMembersWithElders)
       } catch (error) {
@@ -350,45 +319,45 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
     
         // Promote the traveler to an elder
         await demoteToMember(guild, traveler);
-    
+        
         // Fetch the updated guild data
         const updatedGuild = await Guild.findById(GuildId);
-    
-        // Fetch the updated lists of guild members and elders
-        const Members = await Promise.all(updatedGuild.joinedTravelers.map(async (travelerId) => {
-          const traveler = await User.findById(travelerId);
-          return {
-            id: traveler.id || traveler._id,
-            UserName: traveler.username,
-            AccPrivate: traveler.AccPrivate
-          };
-        }));
-    
-        const Elders = await Promise.all(updatedGuild.guildElders.map(async (elderId) => {
-          const elder = await User.findById(elderId);
-          return {
-            id: elder.id || elder._id,
-            UserName: elder.username,
-            AccPrivate: elder.AccPrivate
-          };
-        }));
 
-        const theOwner = await User.findById(updatedGuild.guildOwner);
-    
-        const Owner = {
-          id: theOwner.id || theOwner._id,
-          UserName: theOwner.username,
-          AccPrivate: theOwner.AccPrivate
-        }
-    
-        // Combine guildMembers and guildElders into a single variable
-        const guildMembersWithElders = {
-          Members,
-          Elders,
-          Owner
-        };
+        // Fetch the updated guild members and elders
+        const guildMembersWithElders = await getGuildMembersAndElders(updatedGuild);
     
         callback(updatedGuild, guildMembersWithElders)
+      } catch (error) {
+        console.error('Error updating to elder:', error);
+      }
+    });
+    //new member joined
+    socket.on('New-member', async (GuildId, TravelerId ) => {
+      try {
+        console.log('trying new member')
+        // Authenticate the guild and traveler
+        const guild = await authenticateGuildById(GuildId);
+        const traveler = await authenticateUserById(TravelerId);
+    
+        if (!guild || !traveler) {
+          console.log('Guild or traveler not authenticated');
+          return;
+        }
+
+        // Check if the room with the given ID exists
+        const roomExists = io.sockets.adapter.rooms.has(GuildId);
+        if (!roomExists) {
+          console.log('Room does not exist for GuildId:', GuildId);
+          return;
+        }
+
+        const updatedGuild = await Guild.findById(GuildId);
+
+        // Fetch the updated guild members and elders
+        const guildMembersWithElders = await getGuildMembersAndElders(updatedGuild);
+    
+        // Emit to everyone in the room that a user has joined
+        io.to(GuildId).emit('userJoinedGuildRoom', guildMembersWithElders);
       } catch (error) {
         console.error('Error updating to elder:', error);
       }
@@ -625,4 +594,26 @@ async function demoteToMember(guild, elder) {
     console.error('Error demoting elder to member:', error);
     throw error; // rethrow the error to propagate it up
   }
+}
+async function getGuildMembersAndElders(updatedGuild) {
+  const fetchUserDetails = async (userId) => {
+    const user = await User.findById(userId);
+    return {
+      id: user.id || user._id,
+      UserName: user.username,
+      AccPrivate: user.AccPrivate
+    };
+  };
+
+  const Members = await Promise.all(updatedGuild.joinedTravelers.map(fetchUserDetails));
+  const Elders = await Promise.all(updatedGuild.guildElders.map(fetchUserDetails));
+  const Owner = await fetchUserDetails(updatedGuild.guildOwner);
+
+  const guildMembersWithElders = {
+    Members,
+    Elders,
+    Owner
+  };
+
+  return guildMembersWithElders;
 }
