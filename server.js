@@ -362,6 +362,43 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         console.error('Error updating to elder:', error);
       }
     });
+    //new member joined
+    socket.on('Ban-member', async (GuildId, TravelerId ) => {
+      try {
+        console.log('trying to ban  member')
+        // Authenticate the guild and traveler
+        const guild = await authenticateGuildById(GuildId);
+        const traveler = await authenticateUserById(TravelerId);
+    
+        if (!guild || !traveler) {
+          console.log('Guild or traveler not authenticated');
+          return;
+        }
+
+        // Check if the room with the given ID exists
+        const roomExists = io.sockets.adapter.rooms.has(GuildId);
+        if (!roomExists) {
+          console.log('Room does not exist for GuildId:', GuildId);
+          return;
+        }
+
+        const NewUserInfo = await BanFromGuild(guild, traveler)
+
+        const updatedGuild = await Guild.findById(GuildId);
+
+        // Fetch the updated guild members and elders
+        const guildMembersWithElders = await getGuildMembersAndElders(updatedGuild);
+    
+        // Emit to everyone in the room that a user has joined
+        io.to(GuildId).emit('memberUpdates', guildMembersWithElders);
+        const socketId = usersForConvos[traveler.id || traveler._id];
+        if (socketId) {
+          io.to(socketId).emit('Banned-From-A-Guild', NewUserInfo);
+        }
+      } catch (error) {
+        console.error('Error updating to elder:', error);
+      }
+    });
 
     // Event listener for WebSocket connection closure
     socket.on('disconnect', () => {
@@ -616,4 +653,37 @@ async function getGuildMembersAndElders(updatedGuild) {
   };
 
   return guildMembersWithElders;
+}
+async function BanFromGuild(guild, traveler) {
+  try {
+    const elderIndex = guild.guildElders.findIndex(member => member.id.toString() === traveler.id.toString() || member._id.toString() === traveler.id.toString());
+    const travelerIndex = guild.joinedTravelers.findIndex(member => member.id.toString() === traveler.id.toString() || member._id.toString() === traveler.id.toString());
+
+    if (elderIndex !== -1) {
+      guild.guildElders.splice(elderIndex, 1);
+      console.log(`Demoted elder ${traveler.id} to member successfully.`);
+    } else if (travelerIndex !== -1) {
+      guild.joinedTravelers.splice(travelerIndex, 1);
+      console.log(`Banned traveler ${traveler.id} successfully.`);
+    } else {
+      throw new Error('Traveler not found in joined members or elder.');
+    }
+
+    traveler.guildsJoined = traveler.guildsJoined.filter(guildId => {
+      const shouldKeep = guildId.toString() !== guild.id.toString();
+      if (!shouldKeep) {
+        console.log(`Removing guild ${guild.id} from traveler's guildsJoined array`);
+      }
+      return shouldKeep;
+    });
+
+    guild.bannedTravelers.push(traveler);
+    await guild.save();
+    const updatedTraveler = await traveler.save();
+
+    return updatedTraveler;
+  } catch (error) {
+    console.error('Error banning traveler from guild:', error);
+    throw error;
+  }
 }
