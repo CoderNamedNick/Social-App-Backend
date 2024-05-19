@@ -16,7 +16,10 @@ const guildSchema = new mongoose.Schema({
   RequestToJoin: {type: Boolean, required: true},
   Findable: {type: Boolean, required: true},
   guildJoinRequest: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-  bannedTravelers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  bannedTravelers: [{
+    Traveler: {type: mongoose.Schema.Types.ObjectId, ref: 'User'},
+    Reason: { type: String},
+  }],
   guildColor: { type: String},
 });
 

@@ -362,8 +362,8 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         console.error('Error updating to elder:', error);
       }
     });
-    //new member joined
-    socket.on('Ban-member', async (GuildId, TravelerId ) => {
+    //ban member
+    socket.on('Ban-member', async (GuildId, TravelerId, Reason ) => {
       try {
         console.log('trying to ban  member')
         // Authenticate the guild and traveler
@@ -382,7 +382,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
           return;
         }
 
-        const NewUserInfo = await BanFromGuild(guild, traveler)
+        const NewUserInfo = await BanFromGuild(guild, traveler, Reason)
 
         const updatedGuild = await Guild.findById(GuildId);
 
@@ -654,10 +654,14 @@ async function getGuildMembersAndElders(updatedGuild) {
 
   return guildMembersWithElders;
 }
-async function BanFromGuild(guild, traveler) {
+async function BanFromGuild(guild, traveler, Reason) {
   try {
-    const elderIndex = guild.guildElders.findIndex(member => member.id.toString() === traveler.id.toString() || member._id.toString() === traveler.id.toString());
-    const travelerIndex = guild.joinedTravelers.findIndex(member => member.id.toString() === traveler.id.toString() || member._id.toString() === traveler.id.toString());
+    const elderIndex = guild.guildElders.findIndex(member => 
+      member.id.toString() === traveler.id.toString() || member._id.toString() === traveler.id.toString()
+    );
+    const travelerIndex = guild.joinedTravelers.findIndex(member => 
+      member.id.toString() === traveler.id.toString() || member._id.toString() === traveler.id.toString()
+    );
 
     if (elderIndex !== -1) {
       guild.guildElders.splice(elderIndex, 1);
@@ -677,7 +681,7 @@ async function BanFromGuild(guild, traveler) {
       return shouldKeep;
     });
 
-    guild.bannedTravelers.push(traveler);
+    guild.bannedTravelers.push({ Traveler: traveler._id, Reason: Reason });
     await guild.save();
     const updatedTraveler = await traveler.save();
 
