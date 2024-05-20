@@ -79,6 +79,39 @@ router.get('/JoinedTravelers/:id', async (req, res) => {
   }
 });
 
+//get all users that requested to join
+router.get('/ReqToJoinTavelers/:id', async (req, res) => {
+  const guildId = req.params.id;
+
+  try {
+    const guild = await Guild.findById(guildId);
+    
+    if (!guild) {
+      return res.status(404).json({ message: 'Guild not found' });
+    }
+
+    const ReqToJoinTavelers = [];
+
+    // Fetch guild members
+    for (const traveler of guild.guildJoinRequest) {
+      try {
+        const traveler1 = await User.findById(traveler);
+        ReqToJoinTavelers.push({
+          id: traveler1.id || traveler1._id,
+          UserName: traveler1.username,
+          AccPrivate: traveler1.AccPrivate
+        });
+      } catch (err) {
+        console.error('Error fetching  travelers:', err.message);
+      }
+    }
+    
+    res.status(200).json({ message: 'Arrays with usernames', traveler: ReqToJoinTavelers });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
 // Create a guild
 router.post('/:userId/make-guild', async (req, res) => {
   const userId = req.params.userId;
