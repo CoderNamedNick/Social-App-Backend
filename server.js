@@ -399,6 +399,49 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         console.error('Error updating to elder:', error);
       }
     });
+     //new member requested
+     socket.on('request-join-guild', async (GuildId) => {
+      try {
+        const guild = await authenticateGuildById(GuildId);
+    
+        if (!guild) {
+          console.log('Guild not authenticated');
+          return;
+        }
+
+        // Check if the room with the given ID exists
+        const roomExists = io.sockets.adapter.rooms.has(GuildId);
+        if (!roomExists) {
+          console.log('Room does not exist for GuildId:', GuildId);
+          return;
+        }
+
+        const ReqToJoinTavelers = [];
+
+        // Fetch guild members
+        for (const traveler of guild.guildJoinRequest) {
+          try {
+            const traveler1 = await User.findById(traveler);
+            ReqToJoinTavelers.push({
+              id: traveler1.id || traveler1._id,
+              UserName: traveler1.username,
+              AccPrivate: traveler1.AccPrivate
+            });
+          } catch (err) {
+            console.error('Error fetching  travelers:', err.message);
+          }
+        }
+
+        const updatedGuild = await Guild.findById(GuildId);
+
+        const joinRequestCount = updatedGuild.guildJoinRequest.length
+    
+        // Emit to everyone in the room that a user has joined
+        io.to(GuildId).emit('guildReqUpdates', updatedGuild, joinRequestCount, ReqToJoinTavelers);
+      } catch (error) {
+        console.error('Error updating to elder:', error);
+      }
+    });
 
     // Event listener for WebSocket connection closure
     socket.on('disconnect', () => {
