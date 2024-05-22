@@ -500,6 +500,64 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         console.error('Error accepting new member:', error);
       }
     });
+    // New member request Declined
+    socket.on('New-member-Declined', async (GuildId, TravelerId) => {
+      try {
+        console.log('Trying new member');
+
+        // Authenticate the guild and traveler
+        const guild = await authenticateGuildById(GuildId);
+        const traveler = await authenticateUserById(TravelerId);
+
+        if (!guild || !traveler) {
+          console.log('Guild or traveler not authenticated');
+          return;
+        }
+
+        // Check if the room with the given ID exists
+        const roomExists = io.sockets.adapter.rooms.has(GuildId);
+        if (!roomExists) {
+          console.log('Room does not exist for GuildId:', GuildId);
+          return;
+        }
+
+        // Accept the traveler into the guild
+        const updatedValues = await DeclinedToGuild(guild, traveler);
+
+        // Fetch travelers requesting to join
+        const ReqToJoinTravelers1 = await Promise.all(
+          guild.guildJoinRequest.map(async (travelerId) => {
+            try {
+              const traveler = await User.findById(travelerId);
+              return {
+                id: traveler.id || traveler._id,
+                UserName: traveler.username,
+                AccPrivate: traveler.AccPrivate
+              };
+            } catch (err) {
+              console.error('Error fetching traveler:', err.message);
+              return null;
+            }
+          })
+        );
+
+        // Filter out any null values if there were errors fetching travelers
+        const ReqToJoinTavelers = ReqToJoinTravelers1.filter(trav => trav !== null);
+
+        // Fetch the updated guild information
+        const updatedGuild = await Guild.findById(GuildId);
+
+        const joinRequestCount = updatedGuild.guildJoinRequest.length;
+        const guildMembersWithElders = await getGuildMembersAndElders(updatedGuild);
+
+        // Emit updates to everyone in the room
+        io.to(GuildId).emit('memberUpdates', guildMembersWithElders);
+        io.to(GuildId).emit('guildReqUpdates', updatedGuild, joinRequestCount, ReqToJoinTavelers);
+
+      } catch (error) {
+        console.error('Error accepting new member:', error);
+      }
+    });
 
     // Event listener for WebSocket connection closure
     socket.on('disconnect', () => {
@@ -815,6 +873,49 @@ async function AcceptedToGuild(guild, traveler) {
 
     // Add the guild to the traveler's guildsJoined array
     traveler.guildsJoined.push(guild.id.toString() || guild._id.toString());
+
+    // Find the index of the guild in requestedGuilds array
+    const guildIndex = traveler.requestedGuilds.findIndex(
+      gld => gld.id.toString() === guild.id.toString() || gld._id.toString() === guild.id.toString()
+    );
+
+    // If the guild is found, remove it from requestedGuilds
+    if (guildIndex !== -1) {
+      traveler.requestedGuilds.splice(guildIndex, 1); // Remove the guild
+    } else {
+      throw new Error('Guild not found in traveler requested guilds.');
+    }
+
+    // Save changes to the database
+    await Promise.all([guild.save(), traveler.save()]);
+
+    // Fetch the updated traveler and guild
+    const updatedTraveler = await User.findById(traveler.id.toString() || traveler._id.toString());
+    const updatedGuild = await Guild.findById(guild.id.toString() || guild._id.toString());
+
+    // Return both updated documents
+    return { updatedTraveler, updatedGuild };
+  } catch (error) {
+    console.error('Error accepting traveler to guild:', error);
+    throw error;
+  }
+}
+
+async function DeclinedToGuild(guild, traveler) {
+  try {
+    // Guild Part
+
+    // Find the index of the traveler in guildJoinRequest array
+    const travelerIndex = guild.guildJoinRequest.findIndex(
+      trav => trav.id.toString() === traveler.id.toString() || trav._id.toString() === traveler.id.toString()
+    );
+
+    // If the traveler is found, remove them from guildJoinRequest
+    if (travelerIndex !== -1) {
+      guild.guildJoinRequest.splice(travelerIndex, 1); // Remove the traveler
+    } else {
+      throw new Error('Traveler not found in guild join requests.');
+    }
 
     // Find the index of the guild in requestedGuilds array
     const guildIndex = traveler.requestedGuilds.findIndex(
