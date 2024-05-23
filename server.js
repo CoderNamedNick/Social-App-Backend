@@ -492,10 +492,15 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         const joinRequestCount = updatedGuild.guildJoinRequest.length;
         const guildMembersWithElders = await getGuildMembersAndElders(updatedGuild);
 
+        const NewUserData = await User.findById(TravelerId);
+
         // Emit updates to everyone in the room
         io.to(GuildId).emit('memberUpdates', guildMembersWithElders);
         io.to(GuildId).emit('guildReqUpdates', updatedGuild, joinRequestCount, ReqToJoinTavelers);
-
+        const socketId = usersForConvos[TravelerId];
+        if (socketId) {
+          io.to(socketId).emit('Updated-User-Data', NewUserData);
+        }
       } catch (error) {
         console.error('Error accepting new member:', error);
       }
