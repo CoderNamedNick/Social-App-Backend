@@ -21,6 +21,7 @@ const guildSchema = new mongoose.Schema({
     Reason: { type: String},
   }],
   guildColor: { type: String},
+  guildGuidelines: {type: String}
 });
 
 
