@@ -133,7 +133,8 @@ router.post('/:userId/make-guild', async (req, res) => {
       guildColor,
       RequestToJoin,
       Findable,
-      guildOwner: userId // Assign the user as the guild owner
+      guildOwner: userId, // Assign the user as the guild owner
+      guildGuidelines: '',
     });
 
     // Save the new guild
