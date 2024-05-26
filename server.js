@@ -564,6 +564,39 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
       }
     });
 
+    // New member request Declined
+    socket.on('Guidelines-updated', async (GuildId, NewGuidelines) => {
+      try {
+        console.log('Trying guidelines');
+
+        // Authenticate the guild and traveler
+        const guild = await authenticateGuildById(GuildId);
+
+        if (!guild) {
+          console.log('Guild or traveler not authenticated');
+          return;
+        }
+
+        // Check if the room with the given ID exists
+        const roomExists = io.sockets.adapter.rooms.has(GuildId);
+        if (!roomExists) {
+          console.log('Room does not exist for GuildId:', GuildId);
+          return;
+        }
+
+       await UpdateGuidelines(guild, NewGuidelines);
+
+        // Fetch the updated guild information
+        const updatedGuild = await Guild.findById(GuildId);
+
+        // Emit updates to everyone in the room
+        io.to(GuildId).emit('Guild-Settings-updates', updatedGuild);
+
+      } catch (error) {
+        console.error('Error updating guidelines:', error);
+      }
+    });
+
     // Event listener for WebSocket connection closure
     socket.on('disconnect', () => {
       console.log('Socket.IO connection disconnected');
@@ -945,6 +978,19 @@ async function DeclinedToGuild(guild, traveler) {
     return { updatedTraveler, updatedGuild };
   } catch (error) {
     console.error('Error accepting traveler to guild:', error);
+    throw error;
+  }
+}
+async function UpdateGuidelines(guild, newGuidelines) {
+  try {
+    // Update the guild's guidelines with the new guidelines
+    guild.guildGuidelines = newGuidelines;
+
+    // Save the updated guild object
+    await guild.save();
+  } catch (error) {
+    // Log the error and rethrow it to propagate it up
+    console.error('Error saving guidelines:', error);
     throw error;
   }
 }
