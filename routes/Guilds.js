@@ -157,11 +157,23 @@ router.post('/:userId/make-guild', async (req, res) => {
 
 // Update a guild
 router.patch('/id/:id', getGuildByID, async (req, res) => {
-  if (req.body.guildName != null) {
-    res.guild.guildName = req.body.guildName;
+  if (req.body.guildOwner != null) {
+    res.guild.guildOwner = req.body.guildOwner;
+  }
+  if (req.body.guildMoto != null) {
+    res.guild.guildMoto = req.body.guildMoto;
   }
   if (req.body.bio != null) {
     res.guild.bio = req.body.bio;
+  }
+  if (req.body.RequestToJoin != null) {
+    res.guild.RequestToJoin = req.body.RequestToJoin;
+  }
+  if (req.body.Findable != null) {
+    res.guild.Findable = req.body.Findable;
+  }
+  if (req.body.guildColor != null) {
+    res.guild.guildColor = req.body.guildColor;
   }
   try {
     const updatedGuild = await res.guild.save();
