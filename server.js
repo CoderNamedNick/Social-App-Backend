@@ -270,7 +270,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
           return;
         }
 
-        io.emit('guild-update', guild)
+        io.to(GuildId).emit('guild-update', guild)
       } catch (error) {
         console.error('Error fetching Message count:', error);
       }
