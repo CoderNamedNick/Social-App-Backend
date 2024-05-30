@@ -399,8 +399,48 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         console.error('Error updating to elder:', error);
       }
     });
-     //new member requested
-     socket.on('request-join-guild', async (GuildId) => {
+    //Report member
+    socket.on('Report-member', async (GuildId, TravelerId, Reason) => {
+      try {
+        console.log('trying to report member');
+        
+        // Authenticate the guild and traveler
+        const guild = await authenticateGuildById(GuildId);
+        const traveler = await authenticateUserById(TravelerId);
+        
+        if (!guild || !traveler) {
+          console.log('Guild or traveler not authenticated');
+          return;
+        }
+        
+        // Check if the room with the given ID exists
+        const roomExists = io.sockets.adapter.rooms.has(GuildId);
+        if (!roomExists) {
+          console.log('Room does not exist for GuildId:', GuildId);
+          return;
+        }
+
+        await Guild.findByIdAndUpdate(GuildId, {
+          $push: {
+            Reports: {
+              Traveler: TravelerId,
+              TravelerUserName: traveler.username,
+              ReasonForReport: Reason
+            }
+          }
+        });
+
+        const updatedGuild = await Guild.findById(GuildId);
+    
+        // Emit the updated guild data to the room
+        io.to(GuildId).emit('guild-update', updatedGuild);
+    
+      } catch (error) {
+        console.error('Error reporting member:', error);
+      }
+    });
+    //new member requested
+    socket.on('request-join-guild', async (GuildId) => {
       try {
         const guild = await authenticateGuildById(GuildId);
     
@@ -878,7 +918,7 @@ async function BanFromGuild(guild, traveler, Reason) {
       return shouldKeep;
     });
 
-    guild.bannedTravelers.push({ Traveler: traveler._id, Reason: Reason });
+    guild.bannedTravelers.push({ Traveler: traveler._id, TravelerUserName: traveler.username, Reason: Reason });
     await guild.save();
     const updatedTraveler = await traveler.save();
 
