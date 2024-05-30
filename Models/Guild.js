@@ -17,11 +17,22 @@ const guildSchema = new mongoose.Schema({
   Findable: {type: Boolean, required: true},
   guildJoinRequest: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   bannedTravelers: [{
-    Traveler: {type: mongoose.Schema.Types.ObjectId, ref: 'User'},
+    TravelerId: {type: mongoose.Schema.Types.ObjectId, ref: 'User'},
+    TravelerUserName: { type: String},
     Reason: { type: String},
   }],
   guildColor: { type: String},
   guildGuidelines: {type: String},
+  Reports: [{
+    TravelerId: {type: mongoose.Schema.Types.ObjectId, ref: 'User'},
+    TravelerUserName: { type: String},
+    ReasonForReport: { type: String},
+  }],
+  Warnings: [{
+    TravelerId: {type: mongoose.Schema.Types.ObjectId, ref: 'User'},
+    TravelerUserName: { type: String},
+    ReasonForWarning: { type: String},
+  }]
 });
 
 
