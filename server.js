@@ -423,7 +423,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         await Guild.findByIdAndUpdate(GuildId, {
           $push: {
             Reports: {
-              Traveler: TravelerId,
+              TravelerId: traveler.id || traveler._id,
               TravelerUserName: traveler.username,
               ReasonForReport: Reason
             }
@@ -437,6 +437,47 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
     
       } catch (error) {
         console.error('Error reporting member:', error);
+      }
+    });
+    //Remove Report
+    socket.on('Remove-Report', async (GuildId, ReportId) => {
+      try {
+        console.log('trying to remove report');
+        
+        // Authenticate the guild
+        const guild = await authenticateGuildById(GuildId);
+        
+        if (!guild) {
+          console.log('Guild not authenticated');
+          return;
+        }
+        
+        // Check if the room with the given ID exists
+        const roomExists = io.sockets.adapter.rooms.has(GuildId);
+        if (!roomExists) {
+          console.log('Room does not exist for GuildId:', GuildId);
+          return;
+        }
+        
+        // Remove the report with the specified ReportId from the Reports array
+        await Guild.findByIdAndUpdate(GuildId, {
+          $pull: {
+            Reports: {
+              $or: [
+                { _id: ReportId },
+                { id: ReportId }
+              ]
+            }
+          }
+        });
+    
+        const updatedGuild = await Guild.findById(GuildId);
+      
+        // Emit the updated guild data to the room
+        io.to(GuildId).emit('guild-update', updatedGuild);
+      
+      } catch (error) {
+        console.error('Error removing report:', error);
       }
     });
     //new member requested
@@ -918,7 +959,7 @@ async function BanFromGuild(guild, traveler, Reason) {
       return shouldKeep;
     });
 
-    guild.bannedTravelers.push({ Traveler: traveler._id, TravelerUserName: traveler.username, Reason: Reason });
+    guild.bannedTravelers.push({ TravelerId: traveler._id || traveler.id, TravelerUserName: traveler.username, Reason: Reason });
     await guild.save();
     const updatedTraveler = await traveler.save();
 
