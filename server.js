@@ -480,6 +480,46 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         console.error('Error removing report:', error);
       }
     });
+    //Warn member
+    socket.on('Warn-member', async (GuildId, TravelerId, Reason) => {
+      try {
+        console.log('trying to Warn member');
+        
+        // Authenticate the guild and traveler
+        const guild = await authenticateGuildById(GuildId);
+        const traveler = await authenticateUserById(TravelerId);
+        
+        if (!guild || !traveler) {
+          console.log('Guild or traveler not authenticated');
+          return;
+        }
+        
+        // Check if the room with the given ID exists
+        const roomExists = io.sockets.adapter.rooms.has(GuildId);
+        if (!roomExists) {
+          console.log('Room does not exist for GuildId:', GuildId);
+          return;
+        }
+
+        await Guild.findByIdAndUpdate(GuildId, {
+          $push: {
+            Warnings: {
+              TravelerId: traveler.id || traveler._id,
+              TravelerUserName: traveler.username,
+              ReasonForWarning: Reason
+            }
+          }
+        });
+
+        const updatedGuild = await Guild.findById(GuildId);
+    
+        // Emit the updated guild data to the room
+        io.to(GuildId).emit('guild-update', updatedGuild);
+    
+      } catch (error) {
+        console.error('Error warning member:', error);
+      }
+    });
     //new member requested
     socket.on('request-join-guild', async (GuildId) => {
       try {
