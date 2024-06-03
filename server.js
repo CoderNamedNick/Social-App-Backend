@@ -391,6 +391,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
     
         // Emit to everyone in the room that a user has joined
         io.to(GuildId).emit('memberUpdates', guildMembersWithElders);
+        io.to(GuildId).emit('guild-update', updatedGuild);
         const socketId = usersForConvos[traveler.id || traveler._id];
         if (socketId) {
           io.to(socketId).emit('Banned-From-A-Guild', NewUserInfo);
@@ -746,6 +747,43 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
 
       } catch (error) {
         console.error('Error updating guidelines:', error);
+      }
+    });
+    // Leaving Guild
+    socket.on('Leave-Guild', async (GuildId, TravelerId) => {
+      try {
+        // Authenticate the guild and traveler
+        const guild = await authenticateGuildById(GuildId);
+        const traveler = await authenticateUserById(TravelerId);
+
+        if (!guild || !traveler) {
+          console.log('Guild or traveler not authenticated');
+          return;
+        }
+
+        // Check if the room with the given ID exists
+        const roomExists = io.sockets.adapter.rooms.has(GuildId);
+        if (!roomExists) {
+          console.log('Room does not exist for GuildId:', GuildId);
+          return;
+        }
+
+        await LeavingGuild(guild, traveler);
+
+        // Fetch the updated guild information
+        const updatedGuild = await Guild.findById(GuildId);
+        const NewUserInfo = await User.findById(traveler.id || traveler._id)
+        const guildMembersWithElders = await getGuildMembersAndElders(updatedGuild);
+
+        // Emit updates to everyone in the room
+        io.to(GuildId).emit('memberUpdates', guildMembersWithElders);
+        io.to(GuildId).emit('guild-update', updatedGuild);
+        const socketId = usersForConvos[traveler.id || traveler._id];
+        if (socketId) {
+          io.to(socketId).emit('Banned-From-A-Guild', NewUserInfo);
+        }
+      } catch (error) {
+        console.error('Error accepting new member:', error);
       }
     });
 
@@ -1152,6 +1190,25 @@ async function DeclinedToGuild(guild, traveler) {
   } catch (error) {
     console.error('Error accepting traveler to guild:', error);
     throw error;
+  }
+}
+async function LeavingGuild(guild, traveler) {
+  try {
+    // Remove the traveler from the guild's joinedTravelers array
+    guild.joinedTravelers = guild.joinedTravelers.filter(id => !id.equals(traveler._id));
+
+    // Save the updated guild document
+    await guild.save();
+
+    // Remove the guild from the traveler's guildsJoined array
+    traveler.guildsJoined = traveler.guildsJoined.filter(id => !id.equals(guild._id));
+
+    // Save the updated traveler document
+    await traveler.save();
+
+    console.log(`Traveler with ID ${traveler._id} has left the guild with ID ${guild._id}`);
+  } catch (error) {
+    console.error('Error removing traveler from guild:', error);
   }
 }
 async function UpdateGuidelines(guild, newGuidelines) {
