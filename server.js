@@ -399,6 +399,37 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         console.error('Error updating to elder:', error);
       }
     });
+    //Unban Member
+    socket.on('Unban-member', async (GuildId, TravelerId) => {
+      try {
+        console.log('trying to unban  member')
+        // Authenticate the guild and traveler
+        const guild = await authenticateGuildById(GuildId);
+        const traveler = await authenticateUserById(TravelerId);
+    
+        if (!guild || !traveler) {
+          console.log('Guild or traveler not authenticated');
+          return;
+        }
+
+        // Check if the room with the given ID exists
+        const roomExists = io.sockets.adapter.rooms.has(GuildId);
+        if (!roomExists) {
+          console.log('Room does not exist for GuildId:', GuildId);
+          return;
+        }
+
+        await unbanMember(GuildId, TravelerId)
+
+        const updatedGuild = await Guild.findById(GuildId);
+    
+        // Emit the updated guild data to the room
+        io.to(GuildId).emit('guild-update', updatedGuild);
+
+      } catch (error) {
+        console.error('Error updating to elder:', error);
+      }
+    });
     //Report member
     socket.on('Report-member', async (GuildId, TravelerId, Reason) => {
       try {
@@ -1007,6 +1038,27 @@ async function BanFromGuild(guild, traveler, Reason) {
   } catch (error) {
     console.error('Error banning traveler from guild:', error);
     throw error;
+  }
+}
+async function unbanMember(GuildId, TravelerId) {
+  try {
+    // Find the guild by ID
+    const guild = await Guild.findById(GuildId);
+
+    if (!guild) {
+      console.log('Guild not found');
+      return;
+    }
+
+    // Remove the traveler from the bannedTravelers array
+    guild.bannedTravelers = guild.bannedTravelers.filter(bannedTraveler => !bannedTraveler.TravelerId.equals(TravelerId));
+
+    // Save the updated guild document
+    await guild.save();
+
+    console.log(`Traveler with ID ${TravelerId} has been unbanned from guild ${GuildId}`);
+  } catch (error) {
+    console.error('Error unbanning member:', error);
   }
 }
 async function AcceptedToGuild(guild, traveler) {
