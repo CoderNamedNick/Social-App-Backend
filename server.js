@@ -750,7 +750,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
       }
     });
     // Leaving Guild
-    socket.on('Leave-Guild', async (GuildId, TravelerId) => {
+    socket.on('Retire-From-Guild', async (GuildId, TravelerId) => {
       try {
         // Authenticate the guild and traveler
         const guild = await authenticateGuildById(GuildId);
@@ -784,6 +784,66 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         }
       } catch (error) {
         console.error('Error accepting new member:', error);
+      }
+    });
+    // Disband-Guild handler
+    socket.on('Disband-Guild', async (GuildId, TravelerId) => {
+      try {
+        // Authenticate the guild and traveler
+        const guild = await authenticateGuildById(GuildId);
+        const traveler = await authenticateUserById(TravelerId);
+
+        if (!guild || !traveler) {
+          console.log('Guild or traveler not authenticated');
+          return;
+        }
+        
+        // Remove guild from each traveler's guildsJoined array
+        for (const joinedTravelerId of guild.joinedTravelers) {
+          await User.findByIdAndUpdate(
+            joinedTravelerId,
+            {
+              $pull: {
+                guildsJoined: GuildId
+              }
+            }
+          );
+          const NewUserInfo = await User.findById(joinedTravelerId)
+          const socketId = usersForConvos[joinedTravelerId];
+          if (socketId) {
+            io.to(socketId).emit('Banned-From-A-Guild', NewUserInfo);
+          }
+        }
+
+        // Check if the traveler is the owner of the guild
+        if (!traveler.guildsOwned.includes(GuildId)) {
+          console.log('Traveler does not own this guild');
+          return;
+        }
+
+        // Remove guild id from traveler.guildsOwned and guildsJoined arrays, then save the traveler
+        await User.findByIdAndUpdate(
+          TravelerId,
+          {
+            $pull: {
+              guildsOwned: GuildId,
+              guildsJoined: GuildId
+            }
+          }
+        );
+
+        // Delete the guild
+        await Guild.findByIdAndDelete(GuildId);
+
+        const NewOwnerInfo = await User.findById(TravelerId)
+        const socketId = usersForConvos[TravelerId];
+        if (socketId) {
+          io.to(socketId).emit('Banned-From-A-Guild', NewOwnerInfo);
+        }
+
+        console.log('Guild disbanded successfully');
+      } catch (error) {
+        console.error('Error disbanding guild:', error);
       }
     });
 
@@ -1195,22 +1255,22 @@ async function DeclinedToGuild(guild, traveler) {
 async function LeavingGuild(guild, traveler) {
   try {
     // Remove the traveler from the guild's joinedTravelers array
-    guild.joinedTravelers = guild.joinedTravelers.filter(id => !id.equals(traveler._id));
-
-    // Save the updated guild document
-    await guild.save();
+    await Guild.findByIdAndUpdate(
+      guild._id,
+      { $pull: { joinedTravelers: traveler._id } }
+    );
 
     // Remove the guild from the traveler's guildsJoined array
-    traveler.guildsJoined = traveler.guildsJoined.filter(id => !id.equals(guild._id));
-
-    // Save the updated traveler document
-    await traveler.save();
+    await User.findByIdAndUpdate(
+      traveler._id,
+      { $pull: { guildsJoined: guild._id } }
+    );
 
     console.log(`Traveler with ID ${traveler._id} has left the guild with ID ${guild._id}`);
   } catch (error) {
     console.error('Error removing traveler from guild:', error);
   }
-}
+};
 async function UpdateGuidelines(guild, newGuidelines) {
   try {
     // Update the guild's guidelines with the new guidelines
