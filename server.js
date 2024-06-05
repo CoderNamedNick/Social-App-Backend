@@ -8,13 +8,15 @@ const http = require('http');
 
 // Import the User and Message models
 const User = require('./Models/User');
+const Guild = require('./Models/Guild');
 const Message = require('./Models/Message');
+const Report = require('./Models/Report')
 
 // Import route handlers
 const userRouter = require('./routes/Users');
 const guildRouter = require('./routes/Guilds');
+const reportRouter = require('./routes/Reports')
 const messageRouter = require('./routes/Messages');
-const Guild = require('./Models/Guild');
 
 // Create Express application
 const app = express();
@@ -27,6 +29,7 @@ app.use(express.json());
 app.use('/Users', userRouter);
 app.use('/Guilds', guildRouter);
 app.use('/Messages', messageRouter);
+app.use('/Reports', reportRouter)
 
 // Create HTTP server
 const PORT = process.env.PORT || 5000;
