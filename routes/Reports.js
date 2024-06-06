@@ -4,9 +4,17 @@ const router = express.Router();
 const Report = require('../Models/Report');
 
 // Define routes
-router.post('/user', async (req, res) => {
+router.post('/user/:ReporterId/:TravelerId', async (req, res) => {
   try {
-    const newUserReport = { /* Extract report data from request body */ };
+    const {  TravelerUserName, ReasonForReport, ReportDetails } = req.body;
+    const newUserReport = {
+      Reporter: req.params.ReporterId,
+      TravelerId: req.params.TravelerId,
+      TravelerUserName,
+      ReasonForReport,
+      ReportDetails,
+      ReportDate: new Date()  // Set the report date to now
+    };
     await Report.findOneAndUpdate({}, { $push: { UserReports: newUserReport } }, { upsert: true, new: true });
     res.status(200).json({ message: 'User report added successfully' });
   } catch (error) {
@@ -15,9 +23,17 @@ router.post('/user', async (req, res) => {
   }
 });
 
-router.post('/guild', async (req, res) => {
+router.post('/guild/:ReporterId/:GuildId', async (req, res) => {
   try {
-    const newGuildReport = { /* Extract report data from request body */ };
+    const { GuildName, ReasonForReport, ReportDetails } = req.body;
+    const newGuildReport = {
+      Reporter: req.params.ReporterId,
+      GuildId: req.params.GuildId,
+      GuildName,
+      ReasonForReport,
+      ReportDetails,
+      ReportDate: new Date()  // Set the report date to now
+    };
     await Report.findOneAndUpdate({}, { $push: { GuildReports: newGuildReport } }, { upsert: true, new: true });
     res.status(200).json({ message: 'Guild report added successfully' });
   } catch (error) {
