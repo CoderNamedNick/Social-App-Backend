@@ -720,7 +720,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
       }
     });
 
-    // New member request Declined
+    // guidelines update
     socket.on('Guidelines-updated', async (GuildId, NewGuidelines) => {
       try {
         console.log('Trying guidelines');
@@ -849,6 +849,126 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         console.error('Error disbanding guild:', error);
       }
     });
+    // Elder To Owner Message
+    socket.on('Guild-Elder-Messages-E-TO-O', async (GuildId, ElderId, content) => {
+      try {
+        // Authenticate the guild and elder
+        const guild = await authenticateGuildById(GuildId);
+        const elder = await authenticateUserById(ElderId);
+
+        if (!guild || !elder) {
+          console.log('Guild or elder not authenticated');
+          return;
+        }
+
+        // Check if the room with the given ID exists
+        const roomExists = io.sockets.adapter.rooms.has(GuildId);
+        if (!roomExists) {
+          console.log('Room does not exist for GuildId:', GuildId);
+          return;
+        }
+
+        // Find the guild document
+        const guildDoc = await Guild.findById(GuildId);
+
+        // Check if there is an existing conversation for the elder
+        let conversation = guildDoc.guildElderMessages.find(
+          (msg) => msg.ElderConvoStarter === elder.username
+        );
+
+        if (conversation) {
+          // Add the new message to the existing conversation
+          conversation.EldersMessages.push({
+            sender: ElderId,
+            senderUsername: elder.username, // Assuming elder has a username field
+            content: content,
+            timestamp: new Date()
+          });
+        } else {
+          // Create a new conversation with the new message
+          guildDoc.guildElderMessages.push({
+            ElderConvoStarter: elder.username,
+            EldersMessages: [{
+              sender: ElderId,
+              senderUsername: elder.username, // Assuming elder has a username field
+              content: content,
+              timestamp: new Date()
+            }],
+            OwnersMessages: []
+          });
+        }
+
+        // Save the updated guild document
+        await guildDoc.save();
+
+        // Emit updates to everyone in the room
+        io.to(GuildId).emit('guild-update', guildDoc);
+
+      } catch (error) {
+        console.error('Error updating elder messages:', error);
+      }
+    });
+
+    // Owner To Elder Message
+    socket.on('Guild-Elder-Messages-O-TO-E', async (GuildId, OwnerId, ElderUserName, content) => {
+      try {
+        // Authenticate the guild, elder, and owner
+        const guild = await authenticateGuildById(GuildId);
+        const elder = await authenticateUserByUsername(ElderUserName);
+        const owner = await authenticateUserById(OwnerId);
+
+        if (!guild || !elder || !owner) {
+          console.log('Guild, elder, or owner not authenticated');
+          return;
+        }
+
+        // Check if the room with the given ID exists
+        const roomExists = io.sockets.adapter.rooms.has(GuildId);
+        if (!roomExists) {
+          console.log('Room does not exist for GuildId:', GuildId);
+          return;
+        }
+
+        // Find the guild document
+        const guildDoc = await Guild.findById(GuildId);
+
+        // Check if there is an existing conversation for the elder
+        let conversation = guildDoc.guildElderMessages.find(
+          (msg) => msg.ElderConvoStarter === elder.username
+        );
+
+        if (conversation) {
+          // Add the new message to the existing conversation
+          conversation.OwnersMessages.push({
+            sender: OwnerId,
+            senderUsername: owner.username,
+            content: content,
+            timestamp: new Date()
+          });
+        } else {
+          // Create a new conversation with the new message
+          guildDoc.guildElderMessages.push({
+            ElderConvoStarter: elder.username,
+            EldersMessages: [],
+            OwnersMessages: [{
+              sender: OwnerId,
+              senderUsername: owner.username,
+              content: content,
+              timestamp: new Date()
+            }]
+          });
+        }
+
+        // Save the updated guild document
+        await guildDoc.save();
+
+        // Emit updates to everyone in the room
+        io.to(GuildId).emit('guild-update', guildDoc);
+
+      } catch (error) {
+        console.error('Error updating owner messages:', error);
+      }
+    });
 
     // Event listener for WebSocket connection closure
     socket.on('disconnect', () => {
@@ -881,6 +1001,15 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
 async function authenticateUserById(userId) {
   try {
     const foundUser = await User.findById(userId);
+    return foundUser;
+  } catch (error) {
+    throw error;
+  }
+}
+// Function to authenticate user based on username
+async function authenticateUserByUsername(username) {
+  try {
+    const foundUser = await User.findOne({ username: username });
     return foundUser;
   } catch (error) {
     throw error;
