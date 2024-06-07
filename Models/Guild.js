@@ -13,25 +13,40 @@ const guildSchema = new mongoose.Schema({
   joinedTravelers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   bio: { type: String, required: true },
   guildPost: [{ type: mongoose.Schema.Types.ObjectId, ref: 'GuildPost' }],
-  RequestToJoin: {type: Boolean, required: true},
-  Findable: {type: Boolean, required: true},
+  RequestToJoin: { type: Boolean, required: true },
+  Findable: { type: Boolean, required: true },
   guildJoinRequest: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   bannedTravelers: [{
-    TravelerId: {type: mongoose.Schema.Types.ObjectId, ref: 'User'},
-    TravelerUserName: { type: String},
-    Reason: { type: String},
+    TravelerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    TravelerUserName: { type: String },
+    Reason: { type: String },
   }],
-  guildColor: { type: String},
-  guildGuidelines: {type: String},
+  guildColor: { type: String },
+  guildGuidelines: { type: String },
   Reports: [{
-    TravelerId: {type: mongoose.Schema.Types.ObjectId, ref: 'User'},
-    TravelerUserName: { type: String},
-    ReasonForReport: { type: String},
+    TravelerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    TravelerUserName: { type: String },
+    ReasonForReport: { type: String },
   }],
   Warnings: [{
-    TravelerId: {type: mongoose.Schema.Types.ObjectId, ref: 'User'},
-    TravelerUserName: { type: String},
-    ReasonForWarning: { type: String},
+    TravelerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    TravelerUserName: { type: String },
+    ReasonForWarning: { type: String },
+  }],
+  guildElderMessages: [{
+    ElderConvoStarter: { type: String, required: true },
+    EldersMessages: [{
+      sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+      senderUsername: { type: String, required: true },
+      content: { type: String, required: true },
+      timestamp: { type: Date, default: Date.now },
+    }],
+    OwnersMessages: [{
+      sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+      senderUsername: { type: String, required: true },
+      content: { type: String, required: true },
+      timestamp: { type: Date, default: Date.now },
+    }]
   }]
 });
 
