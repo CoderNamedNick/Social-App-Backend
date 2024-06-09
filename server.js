@@ -817,6 +817,22 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
             io.to(socketId).emit('Banned-From-A-Guild', NewUserInfo);
           }
         }
+        // Remove guild from each traveler's guildsJoined array
+        for (const elderId of guild.guildElders) {
+          await User.findByIdAndUpdate(
+            elderId,
+            {
+              $pull: {
+                guildsJoined: GuildId
+              }
+            }
+          );
+          const NewUserInfo = await User.findById(elderId)
+          const socketId = usersForConvos[elderId];
+          if (socketId) {
+            io.to(socketId).emit('Banned-From-A-Guild', NewUserInfo);
+          }
+        }
 
         // Check if the traveler is the owner of the guild
         if (!traveler.guildsOwned.includes(GuildId)) {
