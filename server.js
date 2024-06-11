@@ -985,6 +985,56 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         console.error('Error updating owner messages:', error);
       }
     });
+    
+    // Define the socket event
+    socket.on('Send-Guild-Alert', async (GuildId, OwnerId, content) => {
+      try {
+        // Authenticate the guild, elder, and owner
+        const guild = await authenticateGuildById(GuildId);
+        const owner = await authenticateUserById(OwnerId);
+
+        if (!guild || !owner) {
+          console.log('Guild or owner not authenticated');
+          return;
+        }
+
+        // Check if the room with the given ID exists
+        const roomExists = io.sockets.adapter.rooms.has(GuildId);
+        if (!roomExists) {
+          console.log('Room does not exist for GuildId:', GuildId);
+          return;
+        }
+
+        // Find the guild document
+        let guildDoc = await GuildPost.findOne({ Guild: GuildId });
+
+        // If guildDoc doesn't exist, create a new one
+        if (!guildDoc) {
+          guildDoc = new GuildPost({ Guild: GuildId });
+        }
+
+        // Create the alert object
+        const alert = {
+          Poster: owner._id,
+          PosterUserName: owner.username,
+          content: content,
+          timestamp: new Date(),
+          Likes: 0,
+          Dislikes: 0
+        };
+
+        // Add the alert to the guild's alerts
+        guildDoc.Alerts.push(alert);
+
+        // Save the guild document
+        await guildDoc.save();
+
+        // Emit the alert back to the client
+        io.to(GuildId).emit('Guild-Alert', alert);
+      } catch (error) {
+        console.error('Error creating guild alert:', error);
+      }
+    });
 
     // Event listener for WebSocket connection closure
     socket.on('disconnect', () => {
