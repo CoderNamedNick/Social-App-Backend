@@ -9,6 +9,7 @@ const http = require('http');
 // Import the User and Message models
 const User = require('./Models/User');
 const Guild = require('./Models/Guild');
+const GuildPost = require('./Models/GuildPost')
 const Message = require('./Models/Message');
 const Report = require('./Models/Report')
 
@@ -1030,7 +1031,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         await guildDoc.save();
 
         // Emit the alert back to the client
-        io.to(GuildId).emit('Guild-Alert', alert);
+        io.to(GuildId).emit('Guild-Alert', guildDoc.Alerts);
       } catch (error) {
         console.error('Error creating guild alert:', error);
       }
