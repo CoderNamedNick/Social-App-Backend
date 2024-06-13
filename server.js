@@ -986,8 +986,33 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         console.error('Error updating owner messages:', error);
       }
     });
-    
-    // Define the socket event
+    // get Alerts on load
+    socket.on('Get-Alerts-And-Post', async (GuildId) => {
+      try {
+        const guild = await authenticateGuildById(GuildId);
+
+        if (!guild) {
+          console.log('Guild not authenticated');
+          return;
+        }
+
+        // Check if the room with the given ID exists
+        const roomExists = io.sockets.adapter.rooms.has(GuildId);
+        if (!roomExists) {
+          console.log('Room does not exist for GuildId:', GuildId);
+          return;
+        }
+
+        let guildDoc = await GuildPost.findOne({ Guild: GuildId });
+
+
+        // Emit the alert back to the client
+        io.to(GuildId).emit('Guild-Alerts-And-Post', guildDoc);
+      } catch (error) {
+        console.error('Error creating guild alert:', error);
+      }
+    });
+    // Send Guild Alert returs all alerts
     socket.on('Send-Guild-Alert', async (GuildId, OwnerId, content) => {
       try {
         // Authenticate the guild, elder, and owner
