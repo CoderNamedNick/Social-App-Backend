@@ -8,7 +8,9 @@ const guildpostSchema = new mongoose.Schema({
     content: { type: String, required: true },
     timestamp: { type: Date, default: Date.now },
     Likes: { type: Number, default: 0 },
+    LikesList: [{type: String}],
     Dislikes: { type: Number, default: 0 },
+    DislikesList: [{type: String}],
     comments: [{
       commentingUser: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
       commentingUserName: { type: String, required: true },
@@ -27,7 +29,9 @@ const guildpostSchema = new mongoose.Schema({
     photo: { type: String }, // URL or reference to the photo
     timestamp: { type: Date, default: Date.now },
     Likes: { type: Number, default: 0 },
+    LikesList: [{type: String}],
     Dislikes: { type: Number, default: 0 },
+    DislikesList: [{type: String}],
   }],
 });
 

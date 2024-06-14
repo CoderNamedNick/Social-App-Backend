@@ -854,6 +854,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
 
         // Delete the guild
         await Guild.findByIdAndDelete(GuildId);
+        await GuildPost.findOneAndDelete({ Guild: GuildId });
 
         const NewOwnerInfo = await User.findById(TravelerId)
         const socketId = usersForConvos[TravelerId];
@@ -1061,7 +1062,74 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         console.error('Error creating guild alert:', error);
       }
     });
+     // Handle like event
+    socket.on('like-alert', async ({ alertId, username }, GuildId) => {
+      try {
+        console.log('trying like')
+        // Find the alert in the database
+        const roomExists = io.sockets.adapter.rooms.has(GuildId);
+        if (!roomExists) {
+          console.log('Room does not exist for GuildId:', GuildId);
+          return;
+        }
+        const guildPost = await GuildPost.findOne({ 'Alerts._id': alertId });
+        if (guildPost) {
+          const alert = guildPost.Alerts.id(alertId);
+          if (alert && !alert.LikesList.includes(username)) {
+            alert.LikesList.push(username);
+            alert.Likes = alert.LikesList.length;
 
+            // Ensure the user isn't in the DislikesList if they liked the alert
+            const dislikeIndex = alert.DislikesList.indexOf(username);
+            if (dislikeIndex !== -1) {
+              alert.DislikesList.splice(dislikeIndex, 1);
+              alert.Dislikes = alert.DislikesList.length;
+            }
+
+            await guildPost.save();
+
+            // Broadcast the like event to all clients
+            io.to(GuildId).emit('like', { alertId, username });
+          }
+        }
+      } catch (error) {
+        console.error('Error handling like alert:', error);
+      }
+    });
+
+    // Handle dislike event
+    socket.on('dislike-alert', async ({ alertId, username}, GuildId) => {
+      try {
+        // Find the alert in the database
+        const roomExists = io.sockets.adapter.rooms.has(GuildId);
+        if (!roomExists) {
+          console.log('Room does not exist for GuildId:', GuildId);
+          return;
+        }
+        const guildPost = await GuildPost.findOne({ 'Alerts._id': alertId });
+        if (guildPost) {
+          const alert = guildPost.Alerts.id(alertId);
+          if (alert && !alert.DislikesList.includes(username)) {
+            alert.DislikesList.push(username);
+            alert.Dislikes = alert.DislikesList.length;
+
+            // Ensure the user isn't in the LikesList if they disliked the alert
+            const likeIndex = alert.LikesList.indexOf(username);
+            if (likeIndex !== -1) {
+              alert.LikesList.splice(likeIndex, 1);
+              alert.Likes = alert.LikesList.length;
+            }
+
+            await guildPost.save();
+
+            // Broadcast the dislike event to all clients
+            io.to(GuildId).emit('dislike', { alertId, username });
+          }
+        }
+      } catch (error) {
+        console.error('Error handling dislike alert:', error);
+      }
+    });
     // Event listener for WebSocket connection closure
     socket.on('disconnect', () => {
       console.log('Socket.IO connection disconnected');
