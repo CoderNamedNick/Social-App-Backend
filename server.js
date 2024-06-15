@@ -1130,6 +1130,42 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         console.error('Error handling dislike alert:', error);
       }
     });
+    // Handle Remove-Reaction event
+    socket.on('Remove-Reaction', async ({ alertId, username}, GuildId) => {
+      try {
+        const roomExists = io.sockets.adapter.rooms.has(GuildId);
+        if (!roomExists) {
+          console.log('Room does not exist for GuildId:', GuildId);
+          return;
+        }
+
+        const guildPost = await GuildPost.findOne({ 'Alerts._id': alertId });
+        if (guildPost) {
+          const alert = guildPost.Alerts.id(alertId);
+
+          // Ensure the user isn't in the DislikesList if they disliked the alert
+          const dislikeIndex = alert.DislikesList.indexOf(username);
+          if (dislikeIndex !== -1) {
+            alert.DislikesList.splice(dislikeIndex, 1);
+            alert.Dislikes = alert.DislikesList.length;
+          }
+
+          // Ensure the user isn't in the LikesList if they liked the alert
+          const likeIndex = alert.LikesList.indexOf(username);
+          if (likeIndex !== -1) {
+            alert.LikesList.splice(likeIndex, 1);
+            alert.Likes = alert.LikesList.length;
+          }
+
+          await guildPost.save();
+
+          // Broadcast the remove-reaction event to all clients in the GuildId room
+          io.to(GuildId).emit('Removed-reaction', { alertId, username });
+        }
+      } catch (error) {
+        console.error('Error handling Remove-Reaction:', error);
+      }
+    });
     // Event listener for WebSocket connection closure
     socket.on('disconnect', () => {
       console.log('Socket.IO connection disconnected');
