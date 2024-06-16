@@ -987,7 +987,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         console.error('Error updating owner messages:', error);
       }
     });
-    // get Alerts on load
+    // get Alerts & Post on load
     socket.on('Get-Alerts-And-Post', async (GuildId) => {
       try {
         const guild = await authenticateGuildById(GuildId);
@@ -1009,6 +1009,33 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
 
         // Emit the alert back to the client
         io.to(GuildId).emit('Guild-Alerts-And-Post', guildDoc);
+      } catch (error) {
+        console.error('Error creating guild alert:', error);
+      }
+    });
+    // get Alerts
+    socket.on('Get-Alerts', async (GuildId) => {
+      try {
+        console.log('refreshing')
+        const guild = await authenticateGuildById(GuildId);
+
+        if (!guild) {
+          console.log('Guild not authenticated');
+          return;
+        }
+
+        // Check if the room with the given ID exists
+        const roomExists = io.sockets.adapter.rooms.has(GuildId);
+        if (!roomExists) {
+          console.log('Room does not exist for GuildId:', GuildId);
+          return;
+        }
+
+        let guildDoc = await GuildPost.findOne({ Guild: GuildId });
+
+
+        // Emit the alert back to the client
+        io.to(GuildId).emit('Guild-Alerts-Refresh', guildDoc);
       } catch (error) {
         console.error('Error creating guild alert:', error);
       }
@@ -1089,7 +1116,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
             await guildPost.save();
 
             // Broadcast the like event to all clients
-            io.to(GuildId).emit('like', { alertId, username });
+            io.to(GuildId).emit('Alert-like', { alertId, username });
           }
         }
       } catch (error) {
@@ -1123,7 +1150,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
             await guildPost.save();
 
             // Broadcast the dislike event to all clients
-            io.to(GuildId).emit('dislike', { alertId, username });
+            io.to(GuildId).emit('Alert-dislike', { alertId, username });
           }
         }
       } catch (error) {
@@ -1131,7 +1158,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
       }
     });
     // Handle Remove-Reaction event
-    socket.on('Remove-Reaction', async ({ alertId, username}, GuildId) => {
+    socket.on('Alert-Remove-Reaction', async ({ alertId, username}, GuildId) => {
       try {
         const roomExists = io.sockets.adapter.rooms.has(GuildId);
         if (!roomExists) {
@@ -1160,7 +1187,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
           await guildPost.save();
 
           // Broadcast the remove-reaction event to all clients in the GuildId room
-          io.to(GuildId).emit('Removed-reaction', { alertId, username });
+          io.to(GuildId).emit('Alert-Removed-reaction', { alertId, username });
         }
       } catch (error) {
         console.error('Error handling Remove-Reaction:', error);
