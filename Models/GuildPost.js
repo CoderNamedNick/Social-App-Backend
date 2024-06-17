@@ -26,7 +26,6 @@ const guildpostSchema = new mongoose.Schema({
     Poster: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     PosterUserName: { type: String, required: true },
     content: { type: String, required: true },
-    photo: { type: String }, // URL or reference to the photo
     timestamp: { type: Date, default: Date.now },
     Likes: { type: Number, default: 0 },
     LikesList: [{type: String}],

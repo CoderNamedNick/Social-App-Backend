@@ -1013,6 +1013,187 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         console.error('Error creating guild alert:', error);
       }
     });
+    // get Post
+    socket.on('Get-Posts', async (GuildId) => {
+      try {
+        console.log('refreshing')
+        const guild = await authenticateGuildById(GuildId);
+
+        if (!guild) {
+          console.log('Guild not authenticated');
+          return;
+        }
+
+        // Check if the room with the given ID exists
+        const roomExists = io.sockets.adapter.rooms.has(GuildId);
+        if (!roomExists) {
+          console.log('Room does not exist for GuildId:', GuildId);
+          return;
+        }
+
+        let guildDoc = await GuildPost.findOne({ Guild: GuildId });
+
+
+        // Emit the alert back to the client
+        io.to(GuildId).emit('Guild-Posts-Refresh', guildDoc);
+      } catch (error) {
+        console.error('Error creating guild alert:', error);
+      }
+    });
+    // Send Guild Post returs all alerts
+    socket.on('Send-Guild-Post', async (GuildId, PosterId, content) => {
+      try {
+        // Authenticate the guild, elder, and owner
+        const guild = await authenticateGuildById(GuildId);
+        const poster = await authenticateUserById(PosterId);
+
+        if (!guild || !poster) {
+          console.log('Guild or poster not authenticated');
+          return;
+        }
+
+        // Check if the room with the given ID exists
+        const roomExists = io.sockets.adapter.rooms.has(GuildId);
+        if (!roomExists) {
+          console.log('Room does not exist for GuildId:', GuildId);
+          return;
+        }
+
+        // Find the guild document
+        let guildDoc = await GuildPost.findOne({ Guild: GuildId });
+
+        // If guildDoc doesn't exist, create a new one
+        if (!guildDoc) {
+          guildDoc = new GuildPost({ Guild: GuildId });
+        }
+
+        // Create the alert object
+        const post = {
+          Poster: poster._id || poster.id,
+          PosterUserName: poster.username,
+          content: content,
+          timestamp: new Date(),
+          Likes: 0,
+          Dislikes: 0,
+          comments: [],
+        };
+
+        // Add the alert to the guild's alerts
+        guildDoc.post.push(post);
+
+        // Save the guild document
+        await guildDoc.save();
+
+        // Emit the alert back to the client
+        io.to(GuildId).emit('Guild-Post', guildDoc.post);
+      } catch (error) {
+        console.error('Error creating guild post:', error);
+      }
+    });
+     // Handle like event
+    socket.on('like-post', async ({ postId, username }, GuildId) => {
+      try {
+        console.log('trying like')
+        // Find the alert in the database
+        const roomExists = io.sockets.adapter.rooms.has(GuildId);
+        if (!roomExists) {
+          console.log('Room does not exist for GuildId:', GuildId);
+          return;
+        }
+        const guildPost = await GuildPost.findOne({ 'post._id': postId });
+        if (guildPost) {
+          const post = guildPost.post.id(postId);
+          if (post && !post.LikesList.includes(username)) {
+            post.LikesList.push(username);
+            post.Likes = post.LikesList.length;
+
+            // Ensure the user isn't in the DislikesList if they liked the alert
+            const dislikeIndex = post.DislikesList.indexOf(username);
+            if (dislikeIndex !== -1) {
+              post.DislikesList.splice(dislikeIndex, 1);
+              post.Dislikes = post.DislikesList.length;
+            }
+
+            await guildPost.save();
+
+            // Broadcast the like event to all clients
+            io.to(GuildId).emit('Post-like', { postId, username });
+          }
+        }
+      } catch (error) {
+        console.error('Error handling like alert:', error);
+      }
+    });
+
+    // Handle dislike event
+    socket.on('dislike-post', async ({ postId, username}, GuildId) => {
+      try {
+        // Find the alert in the database
+        const roomExists = io.sockets.adapter.rooms.has(GuildId);
+        if (!roomExists) {
+          console.log('Room does not exist for GuildId:', GuildId);
+          return;
+        }
+        const guildPost = await GuildPost.findOne({ 'post._id': postId });
+        if (guildPost) {
+          const post = guildPost.post.id(postId);
+          if (post && !post.DislikesList.includes(username)) {
+            post.DislikesList.push(username);
+            post.Dislikes = post.DislikesList.length;
+
+            // Ensure the user isn't in the LikesList if they disliked the alert
+            const likeIndex = post.LikesList.indexOf(username);
+            if (likeIndex !== -1) {
+              post.LikesList.splice(likeIndex, 1);
+              post.Likes = post.LikesList.length;
+            }
+
+            await guildPost.save();
+
+            // Broadcast the dislike event to all clients
+            io.to(GuildId).emit('Post-dislike', { postId, username });
+          }
+        }
+      } catch (error) {
+        console.error('Error handling dislike alert:', error);
+      }
+    });
+    // Handle Remove-Reaction event
+    socket.on('Post-Remove-Reaction', async ({ postId, username}, GuildId) => {
+      try {
+        const roomExists = io.sockets.adapter.rooms.has(GuildId);
+        if (!roomExists) {
+          console.log('Room does not exist for GuildId:', GuildId);
+          return;
+        }
+
+        const guildPost = await GuildPost.findOne({ 'post._id': postId });
+        if (guildPost) {
+          const post = guildPost.post.id(postId);
+
+          // Ensure the user isn't in the DislikesList if they disliked the alert
+          const dislikeIndex = post.DislikesList.indexOf(username);
+          if (dislikeIndex !== -1) {
+            post.DislikesList.splice(dislikeIndex, 1);
+            post.Dislikes = post.DislikesList.length;
+          }
+
+          // Ensure the user isn't in the LikesList if they liked the alert
+          const likeIndex = post.LikesList.indexOf(username);
+          if (likeIndex !== -1) {
+            post.LikesList.splice(likeIndex, 1);
+            post.Likes = post.LikesList.length;
+          }
+
+          await guildPost.save();
+
+          // Broadcast the remove-reaction event to all clients in the GuildId room
+          io.to(GuildId).emit('Post-Removed-reaction', { postId, username });
+        }
+      } catch (error) {
+        console.error('Error handling Remove-Reaction:', error);
+      }
+    });
     // get Alerts
     socket.on('Get-Alerts', async (GuildId) => {
       try {
