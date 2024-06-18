@@ -16,9 +16,7 @@ const guildpostSchema = new mongoose.Schema({
       commentingUserName: { type: String, required: true },
       commentPost: {
         content: { type: String, required: true },
-        timestamp: { type: Date, default: Date.now },
-        Likes: { type: Number, default: 0 },
-        Dislikes: { type: Number, default: 0 },
+        timestamp: { type: Date, default: Date.now }
       }
     }]
   }],
