@@ -56,6 +56,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
 
   const usersForConvos = {};
   const usersForMessages = {};
+  const usersForGuild = {};
   const usersForInTheMessages = {};
 
   // Event listener for incoming WebSocket connections
@@ -67,6 +68,9 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
     });
     socket.on('storeUserIdForMessages', (userId) => {
       usersForMessages[userId] = socket.id;
+    });
+    socket.on('storeUserIdForGuild', (userId) => {
+      usersForGuild[userId] = socket.id;
     });
     socket.on('storeUserIdForInTheMessages', (userId) => {
       console.log('stored id')
@@ -1013,10 +1017,10 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         console.error('Error creating guild alert:', error);
       }
     });
-    // get Post
-    socket.on('Get-Posts', async (GuildId) => {
+    // Handle Get-Posts event
+    socket.on('Get-Posts', async (GuildId, UserId) => {
       try {
-        console.log('refreshing')
+        console.log('refreshing');
         const guild = await authenticateGuildById(GuildId);
 
         if (!guild) {
@@ -1033,11 +1037,14 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
 
         let guildDoc = await GuildPost.findOne({ Guild: GuildId });
 
-
-        // Emit the alert back to the client
-        io.to(GuildId).emit('Guild-Posts-Refresh', guildDoc);
+        const socketId = usersForGuild[UserId];
+        if (socketId) {
+          io.to(socketId).emit('Guild-Posts-Refresh', guildDoc);
+        } else {
+          console.log('User not found in usersForGuild:', UserId);
+        }
       } catch (error) {
-        console.error('Error creating guild alert:', error);
+        console.error('Error refreshing:', error);
       }
     });
     // Send Guild Post returs all alerts
@@ -1067,7 +1074,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
           guildDoc = new GuildPost({ Guild: GuildId });
         }
 
-        // Create the alert object
+        // Create the post object
         const post = {
           Poster: poster._id || poster.id,
           PosterUserName: poster.username,
@@ -1078,14 +1085,15 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
           comments: [],
         };
 
-        // Add the alert to the guild's alerts
+        // Add the post to the guild's alerts
         guildDoc.post.push(post);
 
         // Save the guild document
         await guildDoc.save();
 
-        // Emit the alert back to the client
+        // Emit the post back to the client
         io.to(GuildId).emit('Guild-Post', guildDoc.post);
+        io.to(GuildId).emit('New-Post-Notif', );
       } catch (error) {
         console.error('Error creating guild post:', error);
       }
@@ -1194,8 +1202,64 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         console.error('Error handling Remove-Reaction:', error);
       }
     });
+    // Handle comment event
+    socket.on('Comment-post', async ( postId, CommenterId, GuildId, comment ) => {
+      try {
+        // Authenticate the guild, elder, and owner
+        const guild = await authenticateGuildById(GuildId);
+        const Commenter = await authenticateUserById(CommenterId);
+
+        if (!guild || !Commenter) {
+          console.log('Guild or commenter not authenticated');
+          return;
+        }
+
+        // Check if the room with the given ID exists
+        const roomExists = io.sockets.adapter.rooms.has(GuildId);
+        if (!roomExists) {
+          console.log('Room does not exist for GuildId:', GuildId);
+          return;
+        }
+
+        // Find the guild document
+        let guildDoc = await GuildPost.findOne({ Guild: GuildId });
+        if (!guildDoc) {
+          console.log('Guild document not found for GuildId:', GuildId);
+          return;
+        }
+
+        // Find the specific post within the guild document
+        let post = guildDoc.post.id(postId);
+        if (!post) {
+          console.log('Post not found with postId:', postId);
+          return;
+        }
+
+        // Append the new comment to the comments array of the post
+        post.comments.push({
+          commentingUser: CommenterId,
+          commentingUserName: Commenter.username,
+          commentPost: {
+            content: comment,
+            timestamp: new Date()
+          }
+        });
+
+        // Save the updated document
+        await guildDoc.save();
+
+        // Notify the room about the new comment
+        const socketId = usersForGuild[CommenterId];
+        if (socketId) {
+          io.to(socketId).emit('Comment-added',  postId, comment );
+        } 
+        console.log('Comment added successfully to postId:', postId);
+      } catch (error) {
+        console.error('Error handling comment post:', error);
+      }
+    });
     // get Alerts
-    socket.on('Get-Alerts', async (GuildId) => {
+    socket.on('Get-Alerts', async (GuildId, UserId) => {
       try {
         console.log('refreshing')
         const guild = await authenticateGuildById(GuildId);
@@ -1214,9 +1278,11 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
 
         let guildDoc = await GuildPost.findOne({ Guild: GuildId });
 
+        const socketId = usersForGuild[UserId];
+        if (socketId) {
+          io.to(socketId).emit('Guild-Alerts-Refresh', guildDoc );
+        }
 
-        // Emit the alert back to the client
-        io.to(GuildId).emit('Guild-Alerts-Refresh', guildDoc);
       } catch (error) {
         console.error('Error creating guild alert:', error);
       }
@@ -1385,6 +1451,10 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
       const userId2 = Object.keys(usersForMessages).find(key => usersForMessages[key] === socket.id);
       if (userId2) {
         delete usersForMessages[userId2];
+      }
+      const userId3 = Object.keys(usersForGuild).find(key => usersForGuild[key] === socket.id);
+      if (userId3) {
+        delete usersForGuild[userId3];
       }
       if (socket.guildRoom) {
         console.log('left room', socket.guildRoom);
