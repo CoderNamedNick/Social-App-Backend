@@ -1203,7 +1203,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
       }
     });
     // Handle comment event
-    socket.on('Comment-post', async ( postId, CommenterId, GuildId, comment ) => {
+    socket.on('Comment-post', async (postId, CommenterId, GuildId, comment) => {
       try {
         // Authenticate the guild, elder, and owner
         const guild = await authenticateGuildById(GuildId);
@@ -1236,23 +1236,25 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         }
 
         // Append the new comment to the comments array of the post
-        post.comments.push({
+        const newComment = {
+          id: new Date().toISOString(),
           commentingUser: CommenterId,
           commentingUserName: Commenter.username,
           commentPost: {
-            content: comment,
+            content: comment.commentPost.content,
             timestamp: new Date()
           }
-        });
+        };
+
+        post.comments.push(newComment);
 
         // Save the updated document
         await guildDoc.save();
 
-        // Notify the room about the new comment
         const socketId = usersForGuild[CommenterId];
         if (socketId) {
-          io.to(socketId).emit('Comment-added',  postId, comment );
-        } 
+          io.to(socketId).emit('Comment-added', postId, newComment );
+        }
         console.log('Comment added successfully to postId:', postId);
       } catch (error) {
         console.error('Error handling comment post:', error);
