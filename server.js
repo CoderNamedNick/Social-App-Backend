@@ -1047,6 +1047,55 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         console.error('Error refreshing:', error);
       }
     });
+    socket.on('Get-your-Posts', async (GuildId, UserId) => {
+      try {
+        console.log('refreshing');
+        const guild = await authenticateGuildById(GuildId);
+    
+        if (!guild) {
+          console.log('Guild not authenticated');
+          return;
+        }
+    
+        // Check if the room with the given ID exists
+        const roomExists = io.sockets.adapter.rooms.has(GuildId);
+        if (!roomExists) {
+          console.log('Room does not exist for GuildId:', GuildId);
+          return;
+        }
+    
+        // Retrieve all posts made by the user in the specified guild
+        const userPosts = await GuildPost.aggregate([
+          { $match: { Guild: mongoose.Types.ObjectId(GuildId) } },
+          {
+            $project: {
+              post: {
+                $filter: {
+                  input: '$post',
+                  as: 'post',
+                  cond: { $eq: ['$$post.Poster', mongoose.Types.ObjectId(UserId)] }
+                }
+              }
+            }
+          }
+        ]);
+    
+        if (!userPosts || userPosts.length === 0 || userPosts[0].post.length === 0) {
+          console.log('No posts found for User:', UserId);
+          return;
+        }
+    
+        // Send the user's posts to the socket
+        const socketId = usersForGuild[UserId];
+        if (socketId) {
+          io.to(socketId).emit('Guild-Posts-Refresh', userPosts[0].post);
+        } else {
+          console.log('User not found in usersForGuild:', UserId);
+        }
+      } catch (error) {
+        console.error('Error refreshing:', error);
+      }
+    });
     // Send Guild Post returs all alerts
     socket.on('Send-Guild-Post', async (GuildId, PosterId, content) => {
       try {
