@@ -83,6 +83,25 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
       socket.join(guildId); // Join the room associated with the guild
     });
 
+    //GENERAL USE SOCKETS
+    socket.on('update-user', async (userId) => {
+      try {
+        const user = await authenticateUserById(userId)
+
+        if (!user) {
+          console.log('guild not authenticated');
+          return;
+        }
+        const socketId = usersForConvos[user._id || user.id];
+        if (socketId) {
+          io.to(socketId).emit('Updated-User-Data', user);
+        }
+      } catch (error) {
+        console.error('Error fetching Message count:', error);
+      }
+    });
+
+
     //MESSAGES AND CONVOS SOCKETS
 
     // Event for Converstaion Count
@@ -124,7 +143,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         console.error('Error fetching Conversation count:', error);
       }
     });
-   // Event for message Count
+    // Event for message Count
     socket.on('message-count', async (userId, companionId, cb) => {
       try {
         const theUser = await authenticateUserById(userId);
@@ -142,7 +161,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         console.error('Error fetching Message count:', error);
       }
     });
-       // Event for message Count
+    // Event for message Count
     socket.on('message-count2', async (userId, companionId, cb) => {
       try {
         const theUser = await authenticateUserById(userId);
