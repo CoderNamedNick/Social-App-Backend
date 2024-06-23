@@ -12,6 +12,7 @@ const Guild = require('./Models/Guild');
 const GuildPost = require('./Models/GuildPost')
 const Message = require('./Models/Message');
 const Report = require('./Models/Report')
+const Party = require('./Models/Parties')
 
 // Import route handlers
 const userRouter = require('./routes/Users');
@@ -56,6 +57,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
 
   const usersForConvos = {};
   const usersForMessages = {};
+  const usersForParties = {};
   const usersForGuild = {};
   const usersForInTheMessages = {};
 
@@ -68,6 +70,9 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
     });
     socket.on('storeUserIdForMessages', (userId) => {
       usersForMessages[userId] = socket.id;
+    });
+    socket.on('storeUserIdForParties', (userId) => {
+      usersForParties[userId] = socket.id;
     });
     socket.on('storeUserIdForGuild', (userId) => {
       usersForGuild[userId] = socket.id;
@@ -282,6 +287,133 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
           }
       } catch (error) {
         console.error('Error fetching Message count:', error);
+      }
+    });
+
+    // PARTY SOCKETS
+    socket.on('Find-Parties', async (userId) => {
+      try {
+        // Authenticate user based on userId
+        const user = await authenticateUserById(userId);
+        if (!user) {
+          console.log('User not authenticated');
+          return;
+        }
+
+        // Find parties where the user is a messenger
+        const parties = await Party.find({ messengers: userId }).populate('messengers', 'username');
+
+        // Send the result back to the client
+        socket.emit('Parties-Found', parties);
+        
+      } catch (error) {
+        console.error('Error fetching parties:', error);
+        socket.emit('Error', 'Error fetching parties');
+      }
+    });
+
+    socket.on('Create-Party', async ({ creatorId, messengers, partyname }) => {
+      try {
+        // Authenticate creator
+        const creator = await authenticateUserById(creatorId);
+        if (!creator) {
+          console.log('Creator not authenticated');
+          return;
+        }
+    
+        // Authenticate all messengers
+        const authenticatedMessengers = await Promise.all(messengers.map(async ({ userId, userName }) => {
+          const user = await authenticateUserById(userId);
+          if (!user) {
+            throw new Error(`User with ID ${userId} not authenticated`);
+          }
+          return { userId, userName };
+        }));
+    
+        // Add the creator to the list of authenticated messengers
+        authenticatedMessengers.push({ userId: creatorId, userName: creator.username });
+    
+        // Create new party
+        const newParty = new Party({
+          partyname,
+          messengers: authenticatedMessengers.map(m => m.userId),
+          UserNames: authenticatedMessengers.map(m => m.userName),
+          messages: [],
+        });
+    
+        await newParty.save();
+    
+        // Notify the client
+        socket.emit('Party-Created', newParty);
+        
+      } catch (error) {
+        console.error('Error creating party:', error);
+        socket.emit('Error', 'Error creating party');
+      }
+    });
+    
+    socket.on('Leave-Party', async ({ userId, partyId }) => {
+      try {
+        // Authenticate user
+        const user = await authenticateUserById(userId);
+        if (!user) {
+          console.log('User not authenticated');
+          return;
+        }
+    
+        // Remove user from party
+        const party = await Party.findById(partyId);
+        if (!party) {
+          socket.emit('Error', 'Party not found');
+          return;
+        }
+    
+        party.messengers.pull(userId);
+        party.UserNames = party.UserNames.filter(name => name !== user.username); // Assuming user has a username field
+    
+        await party.save();
+    
+        // Notify the client
+        socket.emit('Left-Party', partyId);
+        
+      } catch (error) {
+        console.error('Error leaving party:', error);
+        socket.emit('Error', 'Error leaving party');
+      }
+    });
+    
+    socket.on('Send-Message', async ({ userId, partyId, message }) => {
+      try {
+        // Authenticate user
+        const user = await authenticateUserById(userId);
+        if (!user) {
+          console.log('User not authenticated');
+          return;
+        }
+    
+        // Find party and add message
+        const party = await Party.findById(partyId);
+        if (!party) {
+          socket.emit('Error', 'Party not found');
+          return;
+        }
+    
+        const newMessage = {
+          sender: userId,
+          senderUsername: user.username, // Assuming user has a username field
+          content: message,
+          timestamp: new Date()
+        };
+    
+        party.messages.push(newMessage);
+        await party.save();
+    
+        // Notify the client
+        socket.emit('Message-Sent', newMessage);
+        
+      } catch (error) {
+        console.error('Error sending message:', error);
+        socket.emit('Error', 'Error sending message');
       }
     });
 
