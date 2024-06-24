@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const partySchema = new mongoose.Schema({
+  creatorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   partyname: {type: String },
   messengers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }],
   UserNames: [{type: String, required: true }],

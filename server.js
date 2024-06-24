@@ -293,22 +293,38 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
     // PARTY SOCKETS
     socket.on('Find-Parties', async (userId) => {
       try {
-        // Authenticate user based on userId
+        console.log('trying find parties')
+        // Authenticate user based on userId (you need to define this function)
         const user = await authenticateUserById(userId);
         if (!user) {
           console.log('User not authenticated');
           return;
         }
-
+  
         // Find parties where the user is a messenger
-        const parties = await Party.find({ messengers: userId }).populate('messengers', 'username');
-
-        // Send the result back to the client
+        const parties = await Party.find({ messengers: userId });
+  
+        // Emit parties to the socket that triggered 'Find-Parties'
         socket.emit('Parties-Found', parties);
-        
+  
       } catch (error) {
         console.error('Error fetching parties:', error);
-        socket.emit('Error', 'Error fetching parties');
+      }
+    });
+    socket.on('get-party-messages', async (PartyID, callback) => {
+      try {
+        const party = await Party.findById(PartyID);
+        if (!party) {
+          callback({ error: 'Party not found' });
+          return;
+        }
+  
+        // Assuming messages are stored in the messages array of the party document
+        const messages = party.messages;
+        callback({ messages });
+      } catch (error) {
+        console.error('Error fetching party messages:', error);
+        callback({ error: 'Failed to fetch messages' });
       }
     });
 
@@ -335,7 +351,8 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
     
         // Create new party
         const newParty = new Party({
-          partyname,
+          creatorId: creatorId,
+          partyname: partyname,
           messengers: authenticatedMessengers.map(m => m.userId),
           UserNames: authenticatedMessengers.map(m => m.userName),
           messages: [],
@@ -382,7 +399,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
       }
     });
     
-    socket.on('Send-Message', async ({ userId, partyId, message }) => {
+    socket.on('Send-Message-To-Party', async (userId, partyId, message) => {
       try {
         // Authenticate user
         const user = await authenticateUserById(userId);
@@ -408,9 +425,15 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         party.messages.push(newMessage);
         await party.save();
     
-        // Notify the client
-        socket.emit('Message-Sent', newMessage);
-        
+        // Emit updates to all users in the party
+        const messengers = party.messengers.map(messenger => messenger.toString());
+        messengers.forEach(messengerId => {
+          const socketId = usersForInTheMessages[messengerId];
+          if (socketId) {
+            io.to(socketId).emit('Message-to-Party-update', party);
+          }
+        });
+    
       } catch (error) {
         console.error('Error sending message:', error);
         socket.emit('Error', 'Error sending message');
