@@ -352,6 +352,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         // Create new party
         const newParty = new Party({
           creatorId: creatorId,
+          creatorUserName: creator.username,
           partyname: partyname,
           messengers: authenticatedMessengers.map(m => m.userId),
           UserNames: authenticatedMessengers.map(m => m.userName),
@@ -369,7 +370,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
       }
     });
     
-    socket.on('Leave-Party', async ({ userId, partyId }) => {
+    socket.on('Leave-Party', async ( userId, partyId ) => {
       try {
         // Authenticate user
         const user = await authenticateUserById(userId);
@@ -381,7 +382,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         // Remove user from party
         const party = await Party.findById(partyId);
         if (!party) {
-          socket.emit('Error', 'Party not found');
+          console.log('no party found')
           return;
         }
     
@@ -390,8 +391,10 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
     
         await party.save();
     
-        // Notify the client
-        socket.emit('Left-Party', partyId);
+        const socketId = usersForInTheMessages[userId];
+          if (socketId) {
+            io.to(socketId).emit('Left-Party', partyId);
+          }
         
       } catch (error) {
         console.error('Error leaving party:', error);
