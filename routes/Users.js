@@ -83,6 +83,8 @@ router.post('/login', async (req, res) => {
       bio: user.bio,
       AccPrivate: user.AccPrivate,
       ProfileColor: user.ProfileColor,
+      ProfileImg: user.ProfileImg,
+      ProfileImgBgColor: user.ProfileImgBgColor,
       CompanionRequest: user.CompanionRequest,
       BlockedTravelers: user.BlockedTravelers,
       messages: user.messages,
@@ -125,6 +127,12 @@ router.patch('/id/:id', getUserByID, async (req, res) => {
     }
     if (req.body.ProfileColor != null) {
       res.user.ProfileColor = req.body.ProfileColor;
+    }
+    if (req.body.ProfileImg != null) {
+      res.user.ProfileImg = req.body.ProfileImg; 
+    }
+    if (req.body.ProfileImgBgColor != null) {
+      res.user.ProfileImgBgColor = req.body.ProfileImgBgColor;
     }
     if (req.body.BlockedTravelers != null) {
       res.user.BlockedTravelers = req.body.BlockedTravelers;
