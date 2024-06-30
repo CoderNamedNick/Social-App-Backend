@@ -78,14 +78,11 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
       usersForGuild[userId] = socket.id;
     });
     socket.on('storeUserIdForInTheMessages', (userId) => {
-      console.log('stored id')
       usersForInTheMessages[userId] = socket.id;
     });
     socket.on('joinGuildRoom', (guildId) => {
-      console.log('joined room', guildId);
-      // Store the guildId as part of the socket's data
       socket.guildRoom = guildId;
-      socket.join(guildId); // Join the room associated with the guild
+      socket.join(guildId); 
     });
 
     //GENERAL USE SOCKETS
@@ -105,7 +102,6 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         console.error('Error fetching Message count:', error);
       }
     });
-
 
     //MESSAGES AND CONVOS SOCKETS
 
