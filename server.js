@@ -366,7 +366,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
       }
     });
     
-    socket.on('Leave-Party', async ( userId, partyId ) => {
+    socket.on('Leave-Party', async (userId, partyId) => {
       try {
         // Authenticate user
         const user = await authenticateUserById(userId);
@@ -378,19 +378,25 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         // Remove user from party
         const party = await Party.findById(partyId);
         if (!party) {
-          console.log('no party found')
+          console.log('No party found');
           return;
         }
     
         party.messengers.pull(userId);
         party.UserNames = party.UserNames.filter(name => name !== user.username); // Assuming user has a username field
     
-        await party.save();
+        // Check if the user is the last one in the party
+        if (party.UserNames.length === 0) {
+          await party.deleteOne(); // Delete the party if it's empty
+          console.log('Party deleted as it had no more members');
+        } else {
+          await party.save(); // Save the party if it's not empty
+        }
     
         const socketId = usersForInTheMessages[userId];
-          if (socketId) {
-            io.to(socketId).emit('Left-Party', partyId);
-          }
+        if (socketId) {
+          io.to(socketId).emit('Left-Party', partyId);
+        }
         
       } catch (error) {
         console.error('Error leaving party:', error);
