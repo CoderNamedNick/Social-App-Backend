@@ -29,23 +29,38 @@ router.get('/email/:email', getUserByemail, (req, res) => {
 router.get('/id/:id', getUserByID, (req, res) => {
   res.send(res.user);
 });
-//Creating one
 router.post('/', async (req, res) => {
-  const newUser = new User({
-    username: req.body.username,
-    email: req.body.email,
-    password: req.body.password,
-    birthDate: req.body.birthDate,
-    bio: req.body.bio, // Include bio field if provided
-    dailyObj: req.body.dailyObj, // Include dailyObj field if provided
-    AccPrivate: req.body.AccPrivate,
-    ProfileColor: req.body.ProfileColor
-  })
+  const { username, email, password, birthDate, bio, dailyObj, AccPrivate, ProfileColor } = req.body;
+
   try {
+    // Check if the username already exists
+    const existingUserByUsername = await User.findOne({ username });
+    if (existingUserByUsername) {
+      return res.status(400).json({ message: 'Username already in use' });
+    }
+
+    // Check if the email already exists
+    const existingUserByEmail = await User.findOne({ email });
+    if (existingUserByEmail) {
+      return res.status(400).json({ message: 'Email already in use' });
+    }
+
+    // Create a new user if both checks pass
+    const newUser = new User({
+      username,
+      email,
+      password,
+      birthDate,
+      bio,
+      dailyObj,
+      AccPrivate,
+      ProfileColor
+    });
+
     const savedUser = await newUser.save();
     res.status(201).json(savedUser);
   } catch (err) {
-    res.status(400).json({ message: err.message });
+    res.status(500).json({ message: err.message });
   }
 });
 // POST - User Login
@@ -102,8 +117,14 @@ router.post('/login', async (req, res) => {
 router.patch('/id/:id', getUserByID, async (req, res) => {
   try {
     if (req.body.username != null) {
+      // Check if the username is already taken
+      const existingUserByUsername = await User.findOne({ username: req.body.username });
+      if (existingUserByUsername && existingUserByUsername._id.toString() !== req.params.id) {
+        return res.status(400).json({ message: 'Username already in use' });
+      }
       res.user.username = req.body.username;
     }
+
     if (req.body.password != null) {
       res.user.password = req.body.password;
     }
