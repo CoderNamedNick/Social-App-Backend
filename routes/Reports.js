@@ -1,9 +1,7 @@
-// Import required modules
 const express = require('express');
 const router = express.Router();
 const Report = require('../Models/Report');
 
-// Define routes
 router.post('/user/:ReporterId/:TravelerId', async (req, res) => {
   try {
     const {  TravelerUserName, ReasonForReport, ReportDetails } = req.body;
@@ -13,7 +11,7 @@ router.post('/user/:ReporterId/:TravelerId', async (req, res) => {
       TravelerUserName,
       ReasonForReport,
       ReportDetails,
-      ReportDate: new Date()  // Set the report date to now
+      ReportDate: new Date() 
     };
     await Report.findOneAndUpdate({}, { $push: { UserReports: newUserReport } }, { upsert: true, new: true });
     res.status(200).json({ message: 'User report added successfully' });
@@ -32,7 +30,7 @@ router.post('/guild/:ReporterId/:GuildId', async (req, res) => {
       GuildName,
       ReasonForReport,
       ReportDetails,
-      ReportDate: new Date()  // Set the report date to now
+      ReportDate: new Date() 
     };
     await Report.findOneAndUpdate({}, { $push: { GuildReports: newGuildReport } }, { upsert: true, new: true });
     res.status(200).json({ message: 'Guild report added successfully' });
@@ -42,5 +40,4 @@ router.post('/guild/:ReporterId/:GuildId', async (req, res) => {
   }
 });
 
-// Export the router
 module.exports = router;

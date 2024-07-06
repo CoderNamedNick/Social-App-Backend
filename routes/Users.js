@@ -5,8 +5,6 @@ const jwt = require('jsonwebtoken'); // Import jsonwebtoken for creating JWT tok
 const User = require('../Models/User');
 const Guild = require('../Models/Guild');
 
-//MAKE ROUTES
-
 //Getting All
 router.get('/', async (req, res) => {
   try{
@@ -17,35 +15,36 @@ router.get('/', async (req, res) => {
     res.status(500).json({ message: err.message })
   }
 })
+
 //gettingbyusername
 router.get('/username/:username', getUserByUsername, (req, res) => {
   res.send(res.user);
 });
+
 //gettingbyusername
 router.get('/email/:email', getUserByemail, (req, res) => {
   res.send(res.user);
 });
+
 //getting by id
 router.get('/id/:id', getUserByID, (req, res) => {
   res.send(res.user);
 });
+
 router.post('/', async (req, res) => {
   const { username, email, password, birthDate, bio, dailyObj, AccPrivate, ProfileColor } = req.body;
 
   try {
-    // Check if the username already exists
     const existingUserByUsername = await User.findOne({ username });
     if (existingUserByUsername) {
       return res.status(400).json({ message: 'Username already in use' });
     }
 
-    // Check if the email already exists
     const existingUserByEmail = await User.findOne({ email });
     if (existingUserByEmail) {
       return res.status(400).json({ message: 'Email already in use' });
     }
 
-    // Create a new user if both checks pass
     const newUser = new User({
       username,
       email,
@@ -63,18 +62,17 @@ router.post('/', async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 });
+
 // POST - User Login
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    // Check if the user exists
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
-    // Check if the password is correct
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return res.status(401).json({ message: 'Invalid email or password' });
@@ -83,7 +81,6 @@ router.post('/login', async (req, res) => {
     // Generate JWT token
     const token = jwt.sign({ userId: user._id }, 'your_secret_key');
 
-    // Additional user information
     const userWithAdditionalInfo = {
       id: user._id,
       username: user.username,
@@ -104,20 +101,18 @@ router.post('/login', async (req, res) => {
       BlockedTravelers: user.BlockedTravelers,
       messages: user.messages,
       requestedGuilds: user.requestedGuilds,
-      // Add more fields as needed
     };
 
-    // Send token and user info in response
     res.status(200).json({ token, user: userWithAdditionalInfo });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
+
 //Updating one
 router.patch('/id/:id', getUserByID, async (req, res) => {
   try {
     if (req.body.username != null) {
-      // Check if the username is already taken
       const existingUserByUsername = await User.findOne({ username: req.body.username });
       if (existingUserByUsername && existingUserByUsername._id.toString() !== req.params.id) {
         return res.status(400).json({ message: 'Username already in use' });
@@ -166,17 +161,17 @@ router.patch('/id/:id', getUserByID, async (req, res) => {
     }
     
     const updatedUser = await res.user.save();
-    res.json(updatedUser); // Sending a JSON response
+    res.json(updatedUser); 
   } catch (err) {
-    res.status(400).json({ message: err.message }); // Sending error message as JSON
+    res.status(400).json({ message: err.message }); 
   }
 });
+
 //getting message count
 router.post('/messages/count', async (req, res) => {
   const companionId = req.body.companionId;
 
   try {
-    // Find the user by companionId and retrieve the number of messages they have
     const user = await User.findById(companionId);
     const messageCount = user.messages ? user.messages.length : 0;
 
@@ -186,10 +181,11 @@ router.post('/messages/count', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
 //updating companion requests
 router.patch('/:userId/companion-request', async (req, res) => {
-  const receiverUserId = req.params.userId; // Changed to match parameter name
-  const senderUserId = req.body.companionId; // Extract companionId from the request body
+  const receiverUserId = req.params.userId;
+  const senderUserId = req.body.companionId; 
 
   try {
     const receiverUser = await User.findById(receiverUserId);
@@ -197,7 +193,6 @@ router.patch('/:userId/companion-request', async (req, res) => {
       return res.status(404).json({ message: 'Receiver user not found' });
     }
 
-    // Push the senderUserId (companionId) to the CompanionRequest array of the receiver user
     receiverUser.CompanionRequest.push(senderUserId);
     await receiverUser.save();
 
@@ -207,35 +202,28 @@ router.patch('/:userId/companion-request', async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 });
-//updating companions with an Accept
+
 router.patch('/:userId/companions', async (req, res) => {
   const accepterId = req.params.userId;
-  const acceptieId = req.body.companionId; // Renamed from companionId for clarity
+  const acceptieId = req.body.companionId; 
 
   try {
-    // Find the accepter user
     const accepterUser = await User.findById(accepterId);
-    
-    // Check if the accepter user exists
+
     if (!accepterUser) {
       return res.status(404).json({ message: 'Accepter user not found' });
     }
 
-    // Push the acceptieId to the Companion array of the accepter user
     accepterUser.companions.push(acceptieId);
 
-    // Find the acceptie user
     const acceptieUser = await User.findById(acceptieId);
 
-    // Check if the acceptie user exists
     if (!acceptieUser) {
       return res.status(404).json({ message: 'Acceptie user not found' });
     }
 
-    // Push the accepterId to the Companion array of the acceptie user
     acceptieUser.companions.push(accepterId);
 
-    // Save changes to both users
     await Promise.all([accepterUser.save(), acceptieUser.save()]);
 
     res.json({ message: 'Companion request sent successfully' });
@@ -244,36 +232,25 @@ router.patch('/:userId/companions', async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 });
+
 //updating companion request with a decline 
 router.patch('/:userId/companions/:accepterId', async (req, res) => {
   const acceptieId = req.params.userId;
   const accepterId = req.params.accepterId;
 
   try {
-    // Find the accepter user
     const accepterUser = await User.findById(accepterId);
     
-    // Check if the accepter user exists
     if (!accepterUser) {
       return res.status(404).json({ message: 'Accepter user not found' });
     }
 
-    // Convert the acceptieId to string for comparison
     const acceptieIdString = acceptieId.toString();
 
-    // Log the initial CompanionRequest array
-    console.log('Initial CompanionRequest array:', accepterUser.CompanionRequest);
-
-    // Create a new array without the acceptieId
     const newCompanionRequest = accepterUser.CompanionRequest.filter(id => id.toString() !== acceptieIdString);
 
-    // Log the new CompanionRequest array
-    console.log('New CompanionRequest array:', newCompanionRequest);
-
-    // Update the CompanionRequest array of the accepter user with the new array
     accepterUser.CompanionRequest = newCompanionRequest;
 
-    // Save changes to the accepter user
     await accepterUser.save();
 
     res.json({ message: 'Companion request declined successfully' });
@@ -282,38 +259,31 @@ router.patch('/:userId/companions/:accepterId', async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 });
+
 //Removing Companion
 router.delete('/:userId/companions/:companionId', async (req, res) => {
   const removerId = req.params.userId;
   const removeeId = req.params.companionId;
 
   try {
-    // Find the remover user
     const removerUser = await User.findById(removerId);
 
-    // Check if the remover user exists
     if (!removerUser) {
       return res.status(404).json({ message: 'Remover user not found' });
     }
 
-    // Remove the removeeId from the Companion array of the remover user
     removerUser.companions = removerUser.companions.filter(id => id.toString() !== removeeId);
 
-    // Save changes to remover user
     await removerUser.save();
 
-    // Find the removee user
     const removeeUser = await User.findById(removeeId);
 
-    // Check if the removee user exists
     if (!removeeUser) {
       return res.status(404).json({ message: 'Removee user not found' });
     }
 
-    // Remove the removerId from the Companion array of the removee user
     removeeUser.companions = removeeUser.companions.filter(id => id.toString() !== removerId);
 
-    // Save changes to removee user
     await removeeUser.save();
 
     res.json({ message: 'Companion removed successfully' });
@@ -322,100 +292,89 @@ router.delete('/:userId/companions/:companionId', async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 });
+
 //Updating with Adding Block List
 router.patch('/:userId/Block-List', async (req, res) => {
   const userId = req.params.userId;
   const travelerId = req.body.travelerId;
 
   try {
-    // Fetch the user by userId
     const user = await User.findById(userId);
     
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    
-    // Check if the travelerId is already in the BlockedTravelers array
+
     if (user.BlockedTravelers.includes(travelerId)) {
       return res.status(400).json({ message: 'Traveler already blocked' });
     }
-    
-    // Add the travelerId to the BlockedTravelers array
+
     user.BlockedTravelers.push(travelerId);
-    
-    // Save the updated user
+
     const updatedUser = await user.save();
-    
-    // Send a success response with the updated user data
+
     res.status(200).json({ message: 'Traveler blocked successfully', user: updatedUser });
   } catch (error) {
     console.error('Error blocking traveler:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
+
 //removing person from block list 
 router.patch('/:userId/Unblock-List', async (req, res) => {
   const userId = req.params.userId;
   const travelerId = req.body.travelerId;
 
   try {
-    // Fetch the user by userId
     const user = await User.findById(userId);
     
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    
-    // Check if the travelerId is in the BlockedTravelers array
+
     const index = user.BlockedTravelers.indexOf(travelerId);
     if (index === -1) {
       return res.status(400).json({ message: 'Traveler not found in block list' });
     }
-    
-    // Remove the travelerId from the BlockedTravelers array
+
     user.BlockedTravelers.splice(index, 1);
-    
-    // Save the updated user
+
     const updatedUser = await user.save();
-    
-    // Send a success response with the updated user data
+
     res.status(200).json({ message: 'Traveler unblocked successfully', user: updatedUser });
   } catch (error) {
     console.error('Error unblocking traveler:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
+
 //Updating Guild List with a join
 router.patch('/:userId/join-guild', async (req, res) => {
   const userId = req.params.userId;
   const GuildId = req.body.GuildId;
 
   try {
-    // Fetch the user by userId
     const user = await User.findById(userId);
     
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    
-    // Check if the travelerId is already in the BlockedTravelers array
+
     if (user.guildsJoined.includes(GuildId)) {
       return res.status(400).json({ message: 'Traveler already blocked' });
     }
-    
-    // Add the travelerId to the BlockedTravelers array
+
     user.guildsJoined.push(GuildId);
-    
-    // Save the updated user
+
     const updatedUser = await user.save();
-    
-    // Send a success response with the updated user data
+
     res.status(200).json({ message: 'guild joined successfully', user: updatedUser });
   } catch (error) {
     console.error('Error joining guild:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
+
 //deleting one
 router.delete('/id/:id', getUserByID, async (req, res) => {
   try {
@@ -429,7 +388,7 @@ router.delete('/id/:id', getUserByID, async (req, res) => {
   }
 });
 
-
+// MIDDLE WARE
 async function getUserByID(req, res, next) {
   try {
     const user = await User.findById(req.params.id)
@@ -442,7 +401,6 @@ async function getUserByID(req, res, next) {
     return res.status(500).json({ message: err.message })
   }
 }
-
 
 async function getUserByUsername(req, res, next) {
   try {
@@ -469,8 +427,5 @@ async function getUserByemail(req, res, next) {
     return res.status(500).json({ message: err.message })
   }
 }
-
-
-
 
 module.exports = router
