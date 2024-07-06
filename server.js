@@ -63,7 +63,6 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
 
   // Event listener for incoming WebSocket connections
   io.on('connection', (socket) => {
-    console.log('New Socket.IO connection');
 
     socket.on('storeUserIdForConvos', (userId) => {
       usersForConvos[userId] = socket.id;
@@ -91,7 +90,6 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         const user = await authenticateUserById(userId)
 
         if (!user) {
-          console.log('guild not authenticated');
           return;
         }
         const socketId = usersForConvos[user._id || user.id];
@@ -99,7 +97,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
           io.to(socketId).emit('Updated-User-Data', user);
         }
       } catch (error) {
-        console.error('Error fetching Message count:', error);
+        console.error('Error fetching User-data:', error);
       }
     });
 
@@ -108,42 +106,37 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
     // Event for Converstaion Count
     socket.on('Conversation-count', async (userId, cb) => {
       try {
-        // Authenticate user based on userId
         const user = await authenticateUserById(userId);
         if (!user) {
           console.log('User not authenticated');
           return;
         }
-    
-        // Fetch unread Converstaion count for the user from the database
+
         const unreadConversationCount = await getConversationCount(user._id || user.id);
-    
-        // Emit the unread Conversation count to the client
+
         cb(unreadConversationCount);
-        console.log('sent Conversation-count-response');
       } catch (error) {
         console.error('Error fetching Conversation count:', error);
       }
     });
+
     // Event for all Unread Messages Count
     socket.on('All-Unread-count', async (userId, cb) => {
       try {
-        // Authenticate user based on userId
         const user = await authenticateUserById(userId);
         if (!user) {
           console.log('User not authenticated');
           return;
         }
     
-        // Fetch unread Converstaion count for the user from the database
         const allunreadmessagesCount = await getAllUnreadMessagesCount(user._id || user.id);
-        // Emit the unread Conversation count to the client
+
         cb(allunreadmessagesCount);
-        console.log('sent All Unread response');
       } catch (error) {
         console.error('Error fetching Conversation count:', error);
       }
     });
+
     // Event for message Count
     socket.on('message-count', async (userId, companionId, cb) => {
       try {
@@ -162,6 +155,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         console.error('Error fetching Message count:', error);
       }
     });
+
     // Event for message Count
     socket.on('message-count2', async (userId, companionId, cb) => {
       try {
@@ -177,7 +171,6 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         
         const socketId4 = usersForConvos[theCompanion._id || theCompanion.id];
         if (socketId4) {
-          console.log('this is socket id 4', socketId4);
           io.to(socketId4).emit('allunreadupdate', unreadMessageCount);
         }
 
@@ -186,9 +179,9 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         console.error('Error fetching Message count:', error);
       }
     });
+
     // Event for New Convo Start
     socket.on('new-convo', async (userId, companionId, ) => {
-      console.log('trying new convo')
       try {
         const theUser = await authenticateUserById(userId);
         const theCompanion = await authenticateUserById(companionId);
@@ -203,13 +196,11 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
 
         const socketId = usersForConvos[companionId];
         if (socketId) {
-          console.log('this is socket id of companion for convos', socketId);
           io.to(socketId).emit('convo-count-update', unreadConversationCount);
           io.to(socketId).emit('allunreadupdate', NewUnreadNotifNumber);
         }
         const socketId2 = usersForMessages[companionId];
         if (socketId2) {
-          console.log('this is socket id of companion for messages', socketId);
           io.to(socketId2).emit('message-count-update', theUser.id || theUser._id, unreadMessageCount);
         }
 
@@ -233,31 +224,26 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         const unreadMessageCount = await getMessageCount(theCompanion._id || theCompanion.id, theUser._id || theUser.id);
         
         const socketId = usersForInTheMessages[receiverId];
-          if (socketId) {
-            console.log('this is socket id of companion', socketId);
-            io.to(socketId).emit('New-Message-update', Conversation);
-          }
-          const socketId2 = usersForInTheMessages[senderId];
-          if (socketId2) {
-            console.log('this is socket id of user', socketId2);
-            io.to(socketId2).emit('New-Message-update', Conversation);
-          }
-          const socketId3 = usersForMessages[theCompanion._id || theCompanion.id];
-          if (socketId3) {
-            console.log('this is socket id of companion for messages', socketId);
-            io.to(socketId3).emit('message-count-update', theUser.id || theUser._id, unreadMessageCount);
-          }
-          const socketId4 = usersForConvos[theCompanion._id || theCompanion.id];
-          if (socketId4) {
-            console.log('this is socket id 4', socketId4);
-            io.to(socketId4).emit('allunreadupdate', unreadMessageCount);
-          }
-
-        console.log('Message sent successfully.');
+        if (socketId) {
+          io.to(socketId).emit('New-Message-update', Conversation);
+        }
+        const socketId2 = usersForInTheMessages[senderId];
+        if (socketId2) {
+          io.to(socketId2).emit('New-Message-update', Conversation);
+        }
+        const socketId3 = usersForMessages[theCompanion._id || theCompanion.id];
+        if (socketId3) {
+          io.to(socketId3).emit('message-count-update', theUser.id || theUser._id, unreadMessageCount);
+        }
+        const socketId4 = usersForConvos[theCompanion._id || theCompanion.id];
+        if (socketId4) {
+          io.to(socketId4).emit('allunreadupdate', unreadMessageCount);
+        }
       } catch (error) {
         console.error('Error sending message:', error);
       }
     });
+    
     // Event for message Count
     socket.on('Mark-As-Read', async (userId, companionId ) => {
       try {
@@ -265,22 +251,19 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         const theCompanion = await authenticateUserById(companionId);
 
         if (!theUser || !theCompanion) {
-          console.log('User or Companion not authenticated');
           return;
         }
 
         const NewUnreadNotifNumber = await MarkAsRead(theUser._id || theUser.id, theUser.username ,theCompanion._id || theCompanion.id);
 
         const socketId = usersForConvos[theUser._id || theUser.id];
-          if (socketId) {
-            console.log('this is socket id of user', socketId);
-            io.to(socketId).emit('allunreadupdate', NewUnreadNotifNumber);
-          }
+        if (socketId) {
+          io.to(socketId).emit('allunreadupdate', NewUnreadNotifNumber);
+        }
         const socketId2 = usersForInTheMessages[theUser._id || theUser.id];
-          if (socketId2) {
-            console.log('this is socket id of user', socketId2);
-            io.to(socketId2).emit('Read-update', NewUnreadNotifNumber);
-          }
+        if (socketId2) {
+          io.to(socketId2).emit('Read-update', NewUnreadNotifNumber);
+        }
       } catch (error) {
         console.error('Error fetching Message count:', error);
       }
@@ -289,24 +272,20 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
     // PARTY SOCKETS
     socket.on('Find-Parties', async (userId) => {
       try {
-        console.log('trying find parties')
-        // Authenticate user based on userId (you need to define this function)
         const user = await authenticateUserById(userId);
         if (!user) {
           console.log('User not authenticated');
           return;
         }
-  
-        // Find parties where the user is a messenger
+
         const parties = await Party.find({ messengers: userId });
-  
-        // Emit parties to the socket that triggered 'Find-Parties'
+
         socket.emit('Parties-Found', parties);
-  
       } catch (error) {
         console.error('Error fetching parties:', error);
       }
     });
+
     socket.on('get-party-messages', async (PartyID, callback) => {
       try {
         const party = await Party.findById(PartyID);
@@ -314,8 +293,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
           callback({ error: 'Party not found' });
           return;
         }
-  
-        // Assuming messages are stored in the messages array of the party document
+
         const messages = party.messages;
         callback({ messages });
       } catch (error) {
@@ -326,14 +304,12 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
 
     socket.on('Create-Party', async ({ creatorId, messengers, partyname }) => {
       try {
-        // Authenticate creator
         const creator = await authenticateUserById(creatorId);
         if (!creator) {
           console.log('Creator not authenticated');
           return;
         }
-    
-        // Authenticate all messengers
+
         const authenticatedMessengers = await Promise.all(messengers.map(async ({ userId, userName }) => {
           const user = await authenticateUserById(userId);
           if (!user) {
@@ -341,11 +317,9 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
           }
           return { userId, userName };
         }));
-    
-        // Add the creator to the list of authenticated messengers
+
         authenticatedMessengers.push({ userId: creatorId, userName: creator.username });
-    
-        // Create new party
+
         const newParty = new Party({
           creatorId: creatorId,
           creatorUserName: creator.username,
@@ -356,10 +330,8 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         });
     
         await newParty.save();
-    
-        // Notify the client
+
         socket.emit('Party-Created', newParty);
-        
       } catch (error) {
         console.error('Error creating party:', error);
         socket.emit('Error', 'Error creating party');
@@ -368,14 +340,12 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
     
     socket.on('Leave-Party', async (userId, partyId) => {
       try {
-        // Authenticate user
         const user = await authenticateUserById(userId);
         if (!user) {
           console.log('User not authenticated');
           return;
         }
-    
-        // Remove user from party
+
         const party = await Party.findById(partyId);
         if (!party) {
           console.log('No party found');
@@ -383,14 +353,13 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         }
     
         party.messengers.pull(userId);
-        party.UserNames = party.UserNames.filter(name => name !== user.username); // Assuming user has a username field
-    
-        // Check if the user is the last one in the party
+        party.UserNames = party.UserNames.filter(name => name !== user.username); 
+
         if (party.UserNames.length === 0) {
-          await party.deleteOne(); // Delete the party if it's empty
+          await party.deleteOne(); 
           console.log('Party deleted as it had no more members');
         } else {
-          await party.save(); // Save the party if it's not empty
+          await party.save(); 
         }
     
         const socketId = usersForInTheMessages[userId];
@@ -406,14 +375,12 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
     
     socket.on('Send-Message-To-Party', async (userId, partyId, message) => {
       try {
-        // Authenticate user
         const user = await authenticateUserById(userId);
         if (!user) {
           console.log('User not authenticated');
           return;
         }
-    
-        // Find party and add message
+
         const party = await Party.findById(partyId);
         if (!party) {
           socket.emit('Error', 'Party not found');
@@ -422,7 +389,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
     
         const newMessage = {
           sender: userId,
-          senderUsername: user.username, // Assuming user has a username field
+          senderUsername: user.username, 
           content: message,
           timestamp: new Date()
         };
@@ -430,7 +397,6 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         party.messages.push(newMessage);
         await party.save();
     
-        // Emit updates to all users in the party
         const messengers = party.messengers.map(messenger => messenger.toString());
         messengers.forEach(messengerId => {
           const socketId = usersForInTheMessages[messengerId];
@@ -464,10 +430,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
     });
 
     socket.on('update-to-elder', async (GuildId, TravelerId ) => {
-      // check if this works pls
       try {
-        console.log('trying update to elder')
-        // Authenticate the guild and traveler
         const guild = await authenticateGuildById(GuildId);
         const traveler = await authenticateUserById(TravelerId);
     
@@ -475,14 +438,11 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
           console.log('Guild or traveler not authenticated');
           return;
         }
-    
-        // Promote the traveler to an elder
+
         await promoteToElder(guild, traveler);
 
-        // Fetch the updated guild data
         const updatedGuild = await Guild.findById(GuildId);
-    
-        // Fetch the updated guild members and elders
+
         const guildMembersWithElders = await getGuildMembersAndElders(updatedGuild);
 
         io.to(GuildId).emit('memberUpdates', guildMembersWithElders);
@@ -490,12 +450,11 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         console.error('Error updating to elder:', error);
       }
     });
+
     //demotes elder to member
     socket.on('demote-to-member', async (GuildId, TravelerId ) => {
-      // check if this works pls
       try {
         console.log('trying update to elder')
-        // Authenticate the guild and traveler
         const guild = await authenticateGuildById(GuildId);
         const traveler = await authenticateUserById(TravelerId);
     
@@ -503,14 +462,11 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
           console.log('Guild or traveler not authenticated');
           return;
         }
-    
-        // Promote the traveler to an elder
+
         await demoteToMember(guild, traveler);
-        
-        // Fetch the updated guild data
+
         const updatedGuild = await Guild.findById(GuildId);
 
-        // Fetch the updated guild members and elders
         const guildMembersWithElders = await getGuildMembersAndElders(updatedGuild);
     
         io.to(GuildId).emit('memberUpdates', guildMembersWithElders);
@@ -518,11 +474,10 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         console.error('Error updating to elder:', error);
       }
     });
+
     //new member joined
     socket.on('New-member', async (GuildId, TravelerId ) => {
       try {
-        console.log('trying new member')
-        // Authenticate the guild and traveler
         const guild = await authenticateGuildById(GuildId);
         const traveler = await authenticateUserById(TravelerId);
     
@@ -531,7 +486,6 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
           return;
         }
 
-        // Check if the room with the given ID exists
         const roomExists = io.sockets.adapter.rooms.has(GuildId);
         if (!roomExists) {
           console.log('Room does not exist for GuildId:', GuildId);
@@ -540,20 +494,17 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
 
         const updatedGuild = await Guild.findById(GuildId);
 
-        // Fetch the updated guild members and elders
         const guildMembersWithElders = await getGuildMembersAndElders(updatedGuild);
-    
-        // Emit to everyone in the room that a user has joined
+
         io.to(GuildId).emit('memberUpdates', guildMembersWithElders);
       } catch (error) {
         console.error('Error updating to elder:', error);
       }
     });
+
     //ban member
     socket.on('Ban-member', async (GuildId, TravelerId, Reason ) => {
       try {
-        console.log('trying to ban  member')
-        // Authenticate the guild and traveler
         const guild = await authenticateGuildById(GuildId);
         const traveler = await authenticateUserById(TravelerId);
     
@@ -562,7 +513,6 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
           return;
         }
 
-        // Check if the room with the given ID exists
         const roomExists = io.sockets.adapter.rooms.has(GuildId);
         if (!roomExists) {
           console.log('Room does not exist for GuildId:', GuildId);
@@ -573,10 +523,8 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
 
         const updatedGuild = await Guild.findById(GuildId);
 
-        // Fetch the updated guild members and elders
         const guildMembersWithElders = await getGuildMembersAndElders(updatedGuild);
-    
-        // Emit to everyone in the room that a user has joined
+
         io.to(GuildId).emit('memberUpdates', guildMembersWithElders);
         io.to(GuildId).emit('guild-update', updatedGuild);
         const socketId = usersForConvos[traveler.id || traveler._id];
@@ -587,11 +535,10 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         console.error('Error updating to elder:', error);
       }
     });
+
     //Unban Member
     socket.on('Unban-member', async (GuildId, TravelerId) => {
       try {
-        console.log('trying to unban  member')
-        // Authenticate the guild and traveler
         const guild = await authenticateGuildById(GuildId);
         const traveler = await authenticateUserById(TravelerId);
     
@@ -600,7 +547,6 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
           return;
         }
 
-        // Check if the room with the given ID exists
         const roomExists = io.sockets.adapter.rooms.has(GuildId);
         if (!roomExists) {
           console.log('Room does not exist for GuildId:', GuildId);
@@ -610,20 +556,18 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         await unbanMember(GuildId, TravelerId)
 
         const updatedGuild = await Guild.findById(GuildId);
-    
-        // Emit the updated guild data to the room
+
         io.to(GuildId).emit('guild-update', updatedGuild);
 
       } catch (error) {
         console.error('Error updating to elder:', error);
       }
     });
+
     //Report member
     socket.on('Report-member', async (GuildId, TravelerId, Reason) => {
       try {
-        console.log('trying to report member');
-        
-        // Authenticate the guild and traveler
+
         const guild = await authenticateGuildById(GuildId);
         const traveler = await authenticateUserById(TravelerId);
         
@@ -631,8 +575,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
           console.log('Guild or traveler not authenticated');
           return;
         }
-        
-        // Check if the room with the given ID exists
+
         const roomExists = io.sockets.adapter.rooms.has(GuildId);
         if (!roomExists) {
           console.log('Room does not exist for GuildId:', GuildId);
@@ -651,34 +594,28 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
 
         const updatedGuild = await Guild.findById(GuildId);
     
-        // Emit the updated guild data to the room
         io.to(GuildId).emit('guild-update', updatedGuild);
-    
       } catch (error) {
         console.error('Error reporting member:', error);
       }
     });
+
     //Remove Report
     socket.on('Remove-Report', async (GuildId, ReportId) => {
       try {
-        console.log('trying to remove report');
-        
-        // Authenticate the guild
         const guild = await authenticateGuildById(GuildId);
         
         if (!guild) {
           console.log('Guild not authenticated');
           return;
         }
-        
-        // Check if the room with the given ID exists
+
         const roomExists = io.sockets.adapter.rooms.has(GuildId);
         if (!roomExists) {
           console.log('Room does not exist for GuildId:', GuildId);
           return;
         }
-        
-        // Remove the report with the specified ReportId from the Reports array
+
         await Guild.findByIdAndUpdate(GuildId, {
           $pull: {
             Reports: {
@@ -691,20 +628,16 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         });
     
         const updatedGuild = await Guild.findById(GuildId);
-      
-        // Emit the updated guild data to the room
+
         io.to(GuildId).emit('guild-update', updatedGuild);
-      
       } catch (error) {
         console.error('Error removing report:', error);
       }
     });
+
     //Warn member
     socket.on('Warn-member', async (GuildId, TravelerId, Reason) => {
       try {
-        console.log('trying to Warn member');
-        
-        // Authenticate the guild and traveler
         const guild = await authenticateGuildById(GuildId);
         const traveler = await authenticateUserById(TravelerId);
         
@@ -712,8 +645,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
           console.log('Guild or traveler not authenticated');
           return;
         }
-        
-        // Check if the room with the given ID exists
+
         const roomExists = io.sockets.adapter.rooms.has(GuildId);
         if (!roomExists) {
           console.log('Room does not exist for GuildId:', GuildId);
@@ -731,14 +663,13 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         });
 
         const updatedGuild = await Guild.findById(GuildId);
-    
-        // Emit the updated guild data to the room
+
         io.to(GuildId).emit('guild-update', updatedGuild);
-    
       } catch (error) {
         console.error('Error warning member:', error);
       }
     });
+
     //new member requested
     socket.on('request-join-guild', async (GuildId) => {
       try {
@@ -749,7 +680,6 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
           return;
         }
 
-        // Check if the room with the given ID exists
         const roomExists = io.sockets.adapter.rooms.has(GuildId);
         if (!roomExists) {
           console.log('Room does not exist for GuildId:', GuildId);
@@ -758,7 +688,6 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
 
         const ReqToJoinTavelers = [];
 
-        // Fetch guild members
         for (const traveler of guild.guildJoinRequest) {
           try {
             const traveler1 = await User.findById(traveler);
@@ -776,18 +705,15 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
 
         const joinRequestCount = updatedGuild.guildJoinRequest.length
     
-        // Emit to everyone in the room that a user has joined
         io.to(GuildId).emit('guildReqUpdates', updatedGuild, joinRequestCount, ReqToJoinTavelers);
       } catch (error) {
         console.error('Error updating to elder:', error);
       }
     });
+
     // New member request Accepted
     socket.on('New-member-Accepted', async (GuildId, TravelerId) => {
       try {
-        console.log('Trying new member');
-
-        // Authenticate the guild and traveler
         const guild = await authenticateGuildById(GuildId);
         const traveler = await authenticateUserById(TravelerId);
 
@@ -796,17 +722,14 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
           return;
         }
 
-        // Check if the room with the given ID exists
         const roomExists = io.sockets.adapter.rooms.has(GuildId);
         if (!roomExists) {
           console.log('Room does not exist for GuildId:', GuildId);
           return;
         }
 
-        // Accept the traveler into the guild
         const updatedValues = await AcceptedToGuild(guild, traveler);
 
-        // Fetch travelers requesting to join
         const ReqToJoinTravelers1 = await Promise.all(
           guild.guildJoinRequest.map(async (travelerId) => {
             try {
@@ -823,10 +746,8 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
           })
         );
 
-        // Filter out any null values if there were errors fetching travelers
         const ReqToJoinTavelers = ReqToJoinTravelers1.filter(trav => trav !== null);
 
-        // Fetch the updated guild information
         const updatedGuild = await Guild.findById(GuildId);
 
         const joinRequestCount = updatedGuild.guildJoinRequest.length;
@@ -834,7 +755,6 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
 
         const NewUserData = await User.findById(TravelerId);
 
-        // Emit updates to everyone in the room
         io.to(GuildId).emit('memberUpdates', guildMembersWithElders);
         io.to(GuildId).emit('guildReqUpdates', updatedGuild, joinRequestCount, ReqToJoinTavelers);
         const socketId = usersForConvos[TravelerId];
@@ -845,12 +765,10 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         console.error('Error accepting new member:', error);
       }
     });
+
     // New member request Declined
     socket.on('New-member-Declined', async (GuildId, TravelerId) => {
       try {
-        console.log('Trying new member');
-
-        // Authenticate the guild and traveler
         const guild = await authenticateGuildById(GuildId);
         const traveler = await authenticateUserById(TravelerId);
 
@@ -859,17 +777,14 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
           return;
         }
 
-        // Check if the room with the given ID exists
         const roomExists = io.sockets.adapter.rooms.has(GuildId);
         if (!roomExists) {
           console.log('Room does not exist for GuildId:', GuildId);
           return;
         }
 
-        // Accept the traveler into the guild
         const updatedValues = await DeclinedToGuild(guild, traveler);
 
-        // Fetch travelers requesting to join
         const ReqToJoinTravelers1 = await Promise.all(
           guild.guildJoinRequest.map(async (travelerId) => {
             try {
@@ -886,30 +801,24 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
           })
         );
 
-        // Filter out any null values if there were errors fetching travelers
         const ReqToJoinTavelers = ReqToJoinTravelers1.filter(trav => trav !== null);
 
-        // Fetch the updated guild information
         const updatedGuild = await Guild.findById(GuildId);
 
         const joinRequestCount = updatedGuild.guildJoinRequest.length;
         const guildMembersWithElders = await getGuildMembersAndElders(updatedGuild);
 
-        // Emit updates to everyone in the room
         io.to(GuildId).emit('memberUpdates', guildMembersWithElders);
         io.to(GuildId).emit('guildReqUpdates', updatedGuild, joinRequestCount, ReqToJoinTavelers);
 
       } catch (error) {
-        console.error('Error accepting new member:', error);
+        console.error('Error declining new member:', error);
       }
     });
 
     // guidelines update
     socket.on('Guidelines-updated', async (GuildId, NewGuidelines) => {
       try {
-        console.log('Trying guidelines');
-
-        // Authenticate the guild and traveler
         const guild = await authenticateGuildById(GuildId);
 
         if (!guild) {
@@ -917,7 +826,6 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
           return;
         }
 
-        // Check if the room with the given ID exists
         const roomExists = io.sockets.adapter.rooms.has(GuildId);
         if (!roomExists) {
           console.log('Room does not exist for GuildId:', GuildId);
@@ -926,20 +834,17 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
 
        await UpdateGuidelines(guild, NewGuidelines);
 
-        // Fetch the updated guild information
         const updatedGuild = await Guild.findById(GuildId);
 
-        // Emit updates to everyone in the room
         io.to(GuildId).emit('Guild-Settings-updates', updatedGuild);
-
       } catch (error) {
         console.error('Error updating guidelines:', error);
       }
     });
+
     // Leaving Guild
     socket.on('Retire-From-Guild', async (GuildId, TravelerId) => {
       try {
-        // Authenticate the guild and traveler
         const guild = await authenticateGuildById(GuildId);
         const traveler = await authenticateUserById(TravelerId);
 
@@ -948,7 +853,6 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
           return;
         }
 
-        // Check if the room with the given ID exists
         const roomExists = io.sockets.adapter.rooms.has(GuildId);
         if (!roomExists) {
           console.log('Room does not exist for GuildId:', GuildId);
@@ -957,12 +861,10 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
 
         await LeavingGuild(guild, traveler);
 
-        // Fetch the updated guild information
         const updatedGuild = await Guild.findById(GuildId);
         const NewUserInfo = await User.findById(traveler.id || traveler._id)
         const guildMembersWithElders = await getGuildMembersAndElders(updatedGuild);
 
-        // Emit updates to everyone in the room
         io.to(GuildId).emit('memberUpdates', guildMembersWithElders);
         io.to(GuildId).emit('guild-update', updatedGuild);
         const socketId = usersForConvos[traveler.id || traveler._id];
@@ -973,10 +875,10 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         console.error('Error accepting new member:', error);
       }
     });
-    // Disband-Guild handler
+
+    // Disband-Guild 
     socket.on('Disband-Guild', async (GuildId, TravelerId) => {
       try {
-        // Authenticate the guild and traveler
         const guild = await authenticateGuildById(GuildId);
         const traveler = await authenticateUserById(TravelerId);
 
@@ -984,8 +886,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
           console.log('Guild or traveler not authenticated');
           return;
         }
-        
-        // Remove guild from each traveler's guildsJoined array
+
         for (const joinedTravelerId of guild.joinedTravelers) {
           await User.findByIdAndUpdate(
             joinedTravelerId,
@@ -1001,7 +902,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
             io.to(socketId).emit('Banned-From-A-Guild', NewUserInfo);
           }
         }
-        // Remove guild from each traveler's guildsJoined array
+
         for (const elderId of guild.guildElders) {
           await User.findByIdAndUpdate(
             elderId,
@@ -1018,13 +919,11 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
           }
         }
 
-        // Check if the traveler is the owner of the guild
         if (!traveler.guildsOwned.includes(GuildId)) {
           console.log('Traveler does not own this guild');
           return;
         }
 
-        // Remove guild id from traveler.guildsOwned and guildsJoined arrays, then save the traveler
         await User.findByIdAndUpdate(
           TravelerId,
           {
@@ -1035,7 +934,6 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
           }
         );
 
-        // Delete the guild
         await Guild.findByIdAndDelete(GuildId);
         await GuildPost.findOneAndDelete({ Guild: GuildId });
 
@@ -1045,15 +943,14 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
           io.to(socketId).emit('Banned-From-A-Guild', NewOwnerInfo);
         }
 
-        console.log('Guild disbanded successfully');
       } catch (error) {
         console.error('Error disbanding guild:', error);
       }
     });
+
     // Elder To Owner Message
     socket.on('Guild-Elder-Messages-E-TO-O', async (GuildId, ElderId, content) => {
       try {
-        // Authenticate the guild and elder
         const guild = await authenticateGuildById(GuildId);
         const elder = await authenticateUserById(ElderId);
 
@@ -1062,36 +959,31 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
           return;
         }
 
-        // Check if the room with the given ID exists
         const roomExists = io.sockets.adapter.rooms.has(GuildId);
         if (!roomExists) {
           console.log('Room does not exist for GuildId:', GuildId);
           return;
         }
 
-        // Find the guild document
         const guildDoc = await Guild.findById(GuildId);
 
-        // Check if there is an existing conversation for the elder
         let conversation = guildDoc.guildElderMessages.find(
           (msg) => msg.ElderConvoStarter === elder.username
         );
 
         if (conversation) {
-          // Add the new message to the existing conversation
           conversation.EldersMessages.push({
             sender: ElderId,
-            senderUsername: elder.username, // Assuming elder has a username field
+            senderUsername: elder.username, 
             content: content,
             timestamp: new Date()
           });
         } else {
-          // Create a new conversation with the new message
           guildDoc.guildElderMessages.push({
             ElderConvoStarter: elder.username,
             EldersMessages: [{
               sender: ElderId,
-              senderUsername: elder.username, // Assuming elder has a username field
+              senderUsername: elder.username, 
               content: content,
               timestamp: new Date()
             }],
@@ -1099,12 +991,9 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
           });
         }
 
-        // Save the updated guild document
         await guildDoc.save();
 
-        // Emit updates to everyone in the room
         io.to(GuildId).emit('guild-update', guildDoc);
-
       } catch (error) {
         console.error('Error updating elder messages:', error);
       }
@@ -1113,7 +1002,6 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
     // Owner To Elder Message
     socket.on('Guild-Elder-Messages-O-TO-E', async (GuildId, OwnerId, ElderUserName, content) => {
       try {
-        // Authenticate the guild, elder, and owner
         const guild = await authenticateGuildById(GuildId);
         const elder = await authenticateUserByUsername(ElderUserName);
         const owner = await authenticateUserById(OwnerId);
@@ -1123,23 +1011,19 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
           return;
         }
 
-        // Check if the room with the given ID exists
         const roomExists = io.sockets.adapter.rooms.has(GuildId);
         if (!roomExists) {
           console.log('Room does not exist for GuildId:', GuildId);
           return;
         }
 
-        // Find the guild document
         const guildDoc = await Guild.findById(GuildId);
 
-        // Check if there is an existing conversation for the elder
         let conversation = guildDoc.guildElderMessages.find(
           (msg) => msg.ElderConvoStarter === elder.username
         );
 
         if (conversation) {
-          // Add the new message to the existing conversation
           conversation.OwnersMessages.push({
             sender: OwnerId,
             senderUsername: owner.username,
@@ -1147,7 +1031,6 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
             timestamp: new Date()
           });
         } else {
-          // Create a new conversation with the new message
           guildDoc.guildElderMessages.push({
             ElderConvoStarter: elder.username,
             EldersMessages: [],
@@ -1160,16 +1043,15 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
           });
         }
 
-        // Save the updated guild document
         await guildDoc.save();
 
-        // Emit updates to everyone in the room
         io.to(GuildId).emit('guild-update', guildDoc);
 
       } catch (error) {
         console.error('Error updating owner messages:', error);
       }
     });
+
     // get Alerts & Post on load
     socket.on('Get-Alerts-And-Post', async (GuildId) => {
       try {
@@ -1180,7 +1062,6 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
           return;
         }
 
-        // Check if the room with the given ID exists
         const roomExists = io.sockets.adapter.rooms.has(GuildId);
         if (!roomExists) {
           console.log('Room does not exist for GuildId:', GuildId);
@@ -1189,17 +1070,15 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
 
         let guildDoc = await GuildPost.findOne({ Guild: GuildId });
 
-
-        // Emit the alert back to the client
         io.to(GuildId).emit('Guild-Alerts-And-Post', guildDoc);
       } catch (error) {
         console.error('Error creating guild alert:', error);
       }
     });
+
     // Handle Get-Posts event
     socket.on('Get-Posts', async (GuildId, UserId) => {
       try {
-        console.log('refreshing');
         const guild = await authenticateGuildById(GuildId);
 
         if (!guild) {
@@ -1207,7 +1086,6 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
           return;
         }
 
-        // Check if the room with the given ID exists
         const roomExists = io.sockets.adapter.rooms.has(GuildId);
         if (!roomExists) {
           console.log('Room does not exist for GuildId:', GuildId);
@@ -1226,24 +1104,22 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         console.error('Error refreshing:', error);
       }
     });
+
     socket.on('Get-your-Posts', async (GuildId, UserId) => {
       try {
-        console.log('refreshing');
         const guild = await authenticateGuildById(GuildId);
     
         if (!guild) {
           console.log('Guild not authenticated');
           return;
         }
-    
-        // Check if the room with the given ID exists
+
         const roomExists = io.sockets.adapter.rooms.has(GuildId);
         if (!roomExists) {
           console.log('Room does not exist for GuildId:', GuildId);
           return;
         }
-    
-        // Retrieve all posts made by the user in the specified guild
+
         const userPosts = await GuildPost.aggregate([
           { $match: { Guild: mongoose.Types.ObjectId(GuildId) } },
           {
@@ -1263,8 +1139,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
           console.log('No posts found for User:', UserId);
           return;
         }
-    
-        // Send the user's posts to the socket
+
         const socketId = usersForGuild[UserId];
         if (socketId) {
           io.to(socketId).emit('Guild-Posts-Refresh', userPosts[0].post);
@@ -1275,10 +1150,10 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         console.error('Error refreshing:', error);
       }
     });
+
     // Send Guild Post returs all alerts
     socket.on('Send-Guild-Post', async (GuildId, PosterId, content) => {
       try {
-        // Authenticate the guild, elder, and owner
         const guild = await authenticateGuildById(GuildId);
         const poster = await authenticateUserById(PosterId);
 
@@ -1287,22 +1162,18 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
           return;
         }
 
-        // Check if the room with the given ID exists
         const roomExists = io.sockets.adapter.rooms.has(GuildId);
         if (!roomExists) {
           console.log('Room does not exist for GuildId:', GuildId);
           return;
         }
 
-        // Find the guild document
         let guildDoc = await GuildPost.findOne({ Guild: GuildId });
 
-        // If guildDoc doesn't exist, create a new one
         if (!guildDoc) {
           guildDoc = new GuildPost({ Guild: GuildId });
         }
 
-        // Create the post object
         const post = {
           Poster: poster._id || poster.id,
           PosterUserName: poster.username,
@@ -1313,24 +1184,20 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
           comments: [],
         };
 
-        // Add the post to the guild's alerts
         guildDoc.post.push(post);
 
-        // Save the guild document
         await guildDoc.save();
 
-        // Emit the post back to the client
         io.to(GuildId).emit('Guild-Post', guildDoc.post);
         io.to(GuildId).emit('New-Post-Notif', );
       } catch (error) {
         console.error('Error creating guild post:', error);
       }
     });
-     // Handle like event
+
+    // Handle like event
     socket.on('like-post', async ({ postId, username }, GuildId) => {
       try {
-        console.log('trying like')
-        // Find the alert in the database
         const roomExists = io.sockets.adapter.rooms.has(GuildId);
         if (!roomExists) {
           console.log('Room does not exist for GuildId:', GuildId);
@@ -1343,7 +1210,6 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
             post.LikesList.push(username);
             post.Likes = post.LikesList.length;
 
-            // Ensure the user isn't in the DislikesList if they liked the alert
             const dislikeIndex = post.DislikesList.indexOf(username);
             if (dislikeIndex !== -1) {
               post.DislikesList.splice(dislikeIndex, 1);
@@ -1352,7 +1218,6 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
 
             await guildPost.save();
 
-            // Broadcast the like event to all clients
             io.to(GuildId).emit('Post-like', { postId, username });
           }
         }
@@ -1364,7 +1229,6 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
     // Handle dislike event
     socket.on('dislike-post', async ({ postId, username}, GuildId) => {
       try {
-        // Find the alert in the database
         const roomExists = io.sockets.adapter.rooms.has(GuildId);
         if (!roomExists) {
           console.log('Room does not exist for GuildId:', GuildId);
@@ -1377,7 +1241,6 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
             post.DislikesList.push(username);
             post.Dislikes = post.DislikesList.length;
 
-            // Ensure the user isn't in the LikesList if they disliked the alert
             const likeIndex = post.LikesList.indexOf(username);
             if (likeIndex !== -1) {
               post.LikesList.splice(likeIndex, 1);
@@ -1386,7 +1249,6 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
 
             await guildPost.save();
 
-            // Broadcast the dislike event to all clients
             io.to(GuildId).emit('Post-dislike', { postId, username });
           }
         }
@@ -1394,6 +1256,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         console.error('Error handling dislike alert:', error);
       }
     });
+
     // Handle Remove-Reaction event
     socket.on('Post-Remove-Reaction', async ({ postId, username}, GuildId) => {
       try {
@@ -1407,14 +1270,12 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         if (guildPost) {
           const post = guildPost.post.id(postId);
 
-          // Ensure the user isn't in the DislikesList if they disliked the alert
           const dislikeIndex = post.DislikesList.indexOf(username);
           if (dislikeIndex !== -1) {
             post.DislikesList.splice(dislikeIndex, 1);
             post.Dislikes = post.DislikesList.length;
           }
 
-          // Ensure the user isn't in the LikesList if they liked the alert
           const likeIndex = post.LikesList.indexOf(username);
           if (likeIndex !== -1) {
             post.LikesList.splice(likeIndex, 1);
@@ -1423,17 +1284,16 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
 
           await guildPost.save();
 
-          // Broadcast the remove-reaction event to all clients in the GuildId room
           io.to(GuildId).emit('Post-Removed-reaction', { postId, username });
         }
       } catch (error) {
         console.error('Error handling Remove-Reaction:', error);
       }
     });
+
     // Handle comment event
     socket.on('Comment-post', async (postId, CommenterId, GuildId, comment) => {
       try {
-        // Authenticate the guild, elder, and owner
         const guild = await authenticateGuildById(GuildId);
         const Commenter = await authenticateUserById(CommenterId);
 
@@ -1442,28 +1302,24 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
           return;
         }
 
-        // Check if the room with the given ID exists
         const roomExists = io.sockets.adapter.rooms.has(GuildId);
         if (!roomExists) {
           console.log('Room does not exist for GuildId:', GuildId);
           return;
         }
 
-        // Find the guild document
         let guildDoc = await GuildPost.findOne({ Guild: GuildId });
         if (!guildDoc) {
           console.log('Guild document not found for GuildId:', GuildId);
           return;
         }
 
-        // Find the specific post within the guild document
         let post = guildDoc.post.id(postId);
         if (!post) {
           console.log('Post not found with postId:', postId);
           return;
         }
 
-        // Append the new comment to the comments array of the post
         const newComment = {
           id: new Date().toISOString(),
           commentingUser: CommenterId,
@@ -1476,22 +1332,20 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
 
         post.comments.push(newComment);
 
-        // Save the updated document
         await guildDoc.save();
 
         const socketId = usersForGuild[CommenterId];
         if (socketId) {
           io.to(socketId).emit('Comment-added', postId, newComment );
         }
-        console.log('Comment added successfully to postId:', postId);
       } catch (error) {
         console.error('Error handling comment post:', error);
       }
     });
+
     // get Alerts
     socket.on('Get-Alerts', async (GuildId, UserId) => {
       try {
-        console.log('refreshing')
         const guild = await authenticateGuildById(GuildId);
 
         if (!guild) {
@@ -1499,7 +1353,6 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
           return;
         }
 
-        // Check if the room with the given ID exists
         const roomExists = io.sockets.adapter.rooms.has(GuildId);
         if (!roomExists) {
           console.log('Room does not exist for GuildId:', GuildId);
@@ -1512,15 +1365,14 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         if (socketId) {
           io.to(socketId).emit('Guild-Alerts-Refresh', guildDoc );
         }
-
       } catch (error) {
         console.error('Error creating guild alert:', error);
       }
     });
+
     // Send Guild Alert returs all alerts
     socket.on('Send-Guild-Alert', async (GuildId, OwnerId, content) => {
       try {
-        // Authenticate the guild, elder, and owner
         const guild = await authenticateGuildById(GuildId);
         const owner = await authenticateUserById(OwnerId);
 
@@ -1529,22 +1381,18 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
           return;
         }
 
-        // Check if the room with the given ID exists
         const roomExists = io.sockets.adapter.rooms.has(GuildId);
         if (!roomExists) {
           console.log('Room does not exist for GuildId:', GuildId);
           return;
         }
 
-        // Find the guild document
         let guildDoc = await GuildPost.findOne({ Guild: GuildId });
 
-        // If guildDoc doesn't exist, create a new one
         if (!guildDoc) {
           guildDoc = new GuildPost({ Guild: GuildId });
         }
 
-        // Create the alert object
         const alert = {
           Poster: owner._id,
           PosterUserName: owner.username,
@@ -1554,23 +1402,19 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
           Dislikes: 0
         };
 
-        // Add the alert to the guild's alerts
         guildDoc.Alerts.push(alert);
 
-        // Save the guild document
         await guildDoc.save();
 
-        // Emit the alert back to the client
         io.to(GuildId).emit('Guild-Alert', guildDoc.Alerts);
       } catch (error) {
         console.error('Error creating guild alert:', error);
       }
     });
-     // Handle like event
+
+    // Handle like event
     socket.on('like-alert', async ({ alertId, username }, GuildId) => {
       try {
-        console.log('trying like')
-        // Find the alert in the database
         const roomExists = io.sockets.adapter.rooms.has(GuildId);
         if (!roomExists) {
           console.log('Room does not exist for GuildId:', GuildId);
@@ -1583,7 +1427,6 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
             alert.LikesList.push(username);
             alert.Likes = alert.LikesList.length;
 
-            // Ensure the user isn't in the DislikesList if they liked the alert
             const dislikeIndex = alert.DislikesList.indexOf(username);
             if (dislikeIndex !== -1) {
               alert.DislikesList.splice(dislikeIndex, 1);
@@ -1592,7 +1435,6 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
 
             await guildPost.save();
 
-            // Broadcast the like event to all clients
             io.to(GuildId).emit('Alert-like', { alertId, username });
           }
         }
@@ -1604,7 +1446,6 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
     // Handle dislike event
     socket.on('dislike-alert', async ({ alertId, username}, GuildId) => {
       try {
-        // Find the alert in the database
         const roomExists = io.sockets.adapter.rooms.has(GuildId);
         if (!roomExists) {
           console.log('Room does not exist for GuildId:', GuildId);
@@ -1617,7 +1458,6 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
             alert.DislikesList.push(username);
             alert.Dislikes = alert.DislikesList.length;
 
-            // Ensure the user isn't in the LikesList if they disliked the alert
             const likeIndex = alert.LikesList.indexOf(username);
             if (likeIndex !== -1) {
               alert.LikesList.splice(likeIndex, 1);
@@ -1626,7 +1466,6 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
 
             await guildPost.save();
 
-            // Broadcast the dislike event to all clients
             io.to(GuildId).emit('Alert-dislike', { alertId, username });
           }
         }
@@ -1634,6 +1473,7 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         console.error('Error handling dislike alert:', error);
       }
     });
+
     // Handle Remove-Reaction event
     socket.on('Alert-Remove-Reaction', async ({ alertId, username}, GuildId) => {
       try {
@@ -1647,14 +1487,12 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         if (guildPost) {
           const alert = guildPost.Alerts.id(alertId);
 
-          // Ensure the user isn't in the DislikesList if they disliked the alert
           const dislikeIndex = alert.DislikesList.indexOf(username);
           if (dislikeIndex !== -1) {
             alert.DislikesList.splice(dislikeIndex, 1);
             alert.Dislikes = alert.DislikesList.length;
           }
 
-          // Ensure the user isn't in the LikesList if they liked the alert
           const likeIndex = alert.LikesList.indexOf(username);
           if (likeIndex !== -1) {
             alert.LikesList.splice(likeIndex, 1);
@@ -1663,17 +1501,16 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
 
           await guildPost.save();
 
-          // Broadcast the remove-reaction event to all clients in the GuildId room
           io.to(GuildId).emit('Alert-Removed-reaction', { alertId, username });
         }
       } catch (error) {
         console.error('Error handling Remove-Reaction:', error);
       }
     });
+
     // Event listener for WebSocket connection closure
     socket.on('disconnect', () => {
       console.log('Socket.IO connection disconnected');
-      // Additional cleanup or logging if needed
       const userId = Object.keys(usersForConvos).find(key => usersForConvos[key] === socket.id);
       if (userId) {
         delete usersForConvos[userId];
@@ -1687,21 +1524,18 @@ mongoose.connect('mongodb://localhost:27017/Social-App', {
         delete usersForGuild[userId3];
       }
       if (socket.guildRoom) {
-        console.log('left room', socket.guildRoom);
-        // Leave the room associated with the guild
         socket.leave(socket.guildRoom);
-        // Optionally, you can remove the guildRoom property from the socket
         delete socket.guildRoom;
       }
     });
   });
-
 })
 .catch((error) => {
   console.error('Error connecting to MongoDB:', error);
 });
 
-// Function to authenticate user based on id
+//MIDDLE WARE FUNCTIONS
+
 async function authenticateUserById(userId) {
   try {
     const foundUser = await User.findById(userId);
@@ -1710,6 +1544,7 @@ async function authenticateUserById(userId) {
     throw error;
   }
 }
+
 // Function to authenticate user based on username
 async function authenticateUserByUsername(username) {
   try {
@@ -1719,6 +1554,7 @@ async function authenticateUserByUsername(username) {
     throw error;
   }
 }
+
 // Function to authenticate guild based on id
 async function authenticateGuildById(GuildId) {
   try {
@@ -1728,6 +1564,7 @@ async function authenticateGuildById(GuildId) {
     throw error;
   }
 }
+
 // Function to fetch unread conversation count for a user
 async function getConversationCount(userId) {
   try {
@@ -1741,6 +1578,7 @@ async function getConversationCount(userId) {
     throw error;
   }
 }
+
 // Function to fetch unread message count between a user and a companion
 async function getMessageCount(userId, companionId) {
   try {
@@ -1764,23 +1602,21 @@ async function getMessageCount(userId, companionId) {
     throw error;
   }
 }
+
 // Function to fetch unread message count between a user and a companion
 async function getAllUnreadMessagesCount(userId) {
   try {
     const conversations = await Message.find({
-      messengers: userId, // User is a messenger
+      messengers: userId, 
     });
 
     if (!conversations || conversations.length === 0) {
-      console.log('no convos meet this criteria')
       return 0;
     }
 
     let unreadCount = 0;
     conversations.forEach(conversation => {
-      // Iterate through messages in each conversation
       conversation.messages.forEach(message => {
-        // Check if the user is the receiver, message is unread, and user is not the sender
         if (message.receiver.includes(userId) && !message.read && !message.sender.equals(userId)) {
           unreadCount++;
         }
@@ -1792,6 +1628,7 @@ async function getAllUnreadMessagesCount(userId) {
     throw error;
   }
 }
+
 // Function to fetchmessaegs between users
 async function SendAndUpdateMessages(userId, companionId, content) {
   try {
@@ -1814,7 +1651,6 @@ async function SendAndUpdateMessages(userId, companionId, content) {
     if (!conversation) {
       console.log('no previous Convos')
     }else {
-      // Update the usernames if they are not already present
       if (!conversation.UserNames.includes(senderUsername)) {
         conversation.UserNames.push(senderUsername);
       }
@@ -1822,7 +1658,6 @@ async function SendAndUpdateMessages(userId, companionId, content) {
         conversation.UserNames.push(receiverUsername);
       }
 
-      // Add the new message to the conversation
       conversation.messages.push({
         sender: userId,
         senderUsername: senderUsername,
@@ -1838,6 +1673,7 @@ async function SendAndUpdateMessages(userId, companionId, content) {
     throw error;
   }
 }
+
 // Function to Mark Messages as read
 async function MarkAsRead(userId, userName,companionId) {
   try {
@@ -1849,72 +1685,62 @@ async function MarkAsRead(userId, userName,companionId) {
       return 0;
     }
 
-    // Mark each message as read where the sender is not the current user
     let newNotifCount = 0;
     for (const message of conversation.messages) {
       if (message.sender !== userId && !message.read && message.senderUsername !== userName) {
         message.read = true;
-        await message.save({ suppressWarning: true }); // Suppress Mongoose warning
+        await message.save({ suppressWarning: true }); 
       }
     }
 
-    // Save the updated conversation
-    await conversation.save({ suppressWarning: true }); // Suppress Mongoose warning
+    await conversation.save({ suppressWarning: true }); 
 
     return newNotifCount;
   } catch (error) {
     throw error;
   }
 }
+
 async function promoteToElder(guild, traveler) {
   try {
-    // Find the index of the traveler in the joinedTravelers array
-    console.log(traveler.id)
     const travelerIndex = guild.joinedTravelers.findIndex(member => member.id.toString() === traveler.id.toString() || member._id.toString() === traveler.id.toString());
 
-    // If the traveler is found in the joinedTravelers array, remove them
     if (travelerIndex !== -1) {
-      guild.joinedTravelers.splice(travelerIndex, 1); // Remove the traveler
+      guild.joinedTravelers.splice(travelerIndex, 1); 
     } else {
       throw new Error('Traveler not found in joined members.');
     }
 
-    // Add traveler to guildElders array
     guild.guildElders.push(traveler);
 
-    // Save the updated guild data to the database
     await guild.save();
 
-    console.log(`Promoted traveler ${traveler.id} to elder successfully.`);
   } catch (error) {
     console.error('Error promoting traveler to elder:', error);
-    throw error; // rethrow the error to propagate it up
+    throw error; 
   }
 }
+
 async function demoteToMember(guild, elder) {
   try {
-    // Find the index of the elder in the guildElders array
     const elderIndex = guild.guildElders.findIndex(member => member.id.toString() === elder.id.toString() || member._id.toString() === elder.id.toString());
 
-    // If the elder is found in the guildElders array, remove them
     if (elderIndex !== -1) {
-      guild.guildElders.splice(elderIndex, 1); // Remove the elder
+      guild.guildElders.splice(elderIndex, 1); 
     } else {
       throw new Error('Elder not found in guild elders.');
     }
 
-    // Add elder to joinedTravelers array
     guild.joinedTravelers.push(elder);
 
-    // Save the updated guild data to the database
     await guild.save();
 
-    console.log(`Demoted elder ${elder.id} to member successfully.`);
   } catch (error) {
     console.error('Error demoting elder to member:', error);
-    throw error; // rethrow the error to propagate it up
+    throw error; 
   }
 }
+
 async function getGuildMembersAndElders(updatedGuild) {
   const fetchUserDetails = async (userId) => {
     const user = await User.findById(userId);
@@ -1937,6 +1763,7 @@ async function getGuildMembersAndElders(updatedGuild) {
 
   return guildMembersWithElders;
 }
+
 async function BanFromGuild(guild, traveler, Reason) {
   try {
     const elderIndex = guild.guildElders.findIndex(member => 
@@ -1948,19 +1775,14 @@ async function BanFromGuild(guild, traveler, Reason) {
 
     if (elderIndex !== -1) {
       guild.guildElders.splice(elderIndex, 1);
-      console.log(`Demoted elder ${traveler.id} to member successfully.`);
     } else if (travelerIndex !== -1) {
       guild.joinedTravelers.splice(travelerIndex, 1);
-      console.log(`Banned traveler ${traveler.id} successfully.`);
     } else {
       throw new Error('Traveler not found in joined members or elder.');
     }
 
     traveler.guildsJoined = traveler.guildsJoined.filter(guildId => {
       const shouldKeep = guildId.toString() !== guild.id.toString();
-      if (!shouldKeep) {
-        console.log(`Removing guild ${guild.id} from traveler's guildsJoined array`);
-      }
       return shouldKeep;
     });
 
@@ -1974,9 +1796,9 @@ async function BanFromGuild(guild, traveler, Reason) {
     throw error;
   }
 }
+
 async function unbanMember(GuildId, TravelerId) {
   try {
-    // Find the guild by ID
     const guild = await Guild.findById(GuildId);
 
     if (!guild) {
@@ -1984,61 +1806,46 @@ async function unbanMember(GuildId, TravelerId) {
       return;
     }
 
-    // Remove the traveler from the bannedTravelers array
     guild.bannedTravelers = guild.bannedTravelers.filter(bannedTraveler => !bannedTraveler.TravelerId.equals(TravelerId));
 
-    // Save the updated guild document
     await guild.save();
 
-    console.log(`Traveler with ID ${TravelerId} has been unbanned from guild ${GuildId}`);
   } catch (error) {
     console.error('Error unbanning member:', error);
   }
 }
 async function AcceptedToGuild(guild, traveler) {
   try {
-    // Guild Part
-
-    // Find the index of the traveler in guildJoinRequest array
     const travelerIndex = guild.guildJoinRequest.findIndex(
       trav => trav.id.toString() === traveler.id.toString() || trav._id.toString() === traveler.id.toString()
     );
 
-    // If the traveler is found, remove them from guildJoinRequest
     if (travelerIndex !== -1) {
-      guild.guildJoinRequest.splice(travelerIndex, 1); // Remove the traveler
+      guild.guildJoinRequest.splice(travelerIndex, 1); 
     } else {
       throw new Error('Traveler not found in guild join requests.');
     }
 
-    // Add the traveler to the guild's joinedTravelers array
     guild.joinedTravelers.push(traveler.id.toString() || traveler._id.toString());
 
-    // Traveler Part
 
-    // Add the guild to the traveler's guildsJoined array
     traveler.guildsJoined.push(guild.id.toString() || guild._id.toString());
 
-    // Find the index of the guild in requestedGuilds array
     const guildIndex = traveler.requestedGuilds.findIndex(
       gld => gld.id.toString() === guild.id.toString() || gld._id.toString() === guild.id.toString()
     );
 
-    // If the guild is found, remove it from requestedGuilds
     if (guildIndex !== -1) {
-      traveler.requestedGuilds.splice(guildIndex, 1); // Remove the guild
+      traveler.requestedGuilds.splice(guildIndex, 1);
     } else {
       throw new Error('Guild not found in traveler requested guilds.');
     }
 
-    // Save changes to the database
     await Promise.all([guild.save(), traveler.save()]);
 
-    // Fetch the updated traveler and guild
     const updatedTraveler = await User.findById(traveler.id.toString() || traveler._id.toString());
     const updatedGuild = await Guild.findById(guild.id.toString() || guild._id.toString());
 
-    // Return both updated documents
     return { updatedTraveler, updatedGuild };
   } catch (error) {
     console.error('Error accepting traveler to guild:', error);
@@ -2048,74 +1855,61 @@ async function AcceptedToGuild(guild, traveler) {
 
 async function DeclinedToGuild(guild, traveler) {
   try {
-    // Guild Part
-
-    // Find the index of the traveler in guildJoinRequest array
     const travelerIndex = guild.guildJoinRequest.findIndex(
       trav => trav.id.toString() === traveler.id.toString() || trav._id.toString() === traveler.id.toString()
     );
 
-    // If the traveler is found, remove them from guildJoinRequest
     if (travelerIndex !== -1) {
-      guild.guildJoinRequest.splice(travelerIndex, 1); // Remove the traveler
+      guild.guildJoinRequest.splice(travelerIndex, 1); 
     } else {
       throw new Error('Traveler not found in guild join requests.');
     }
 
-    // Find the index of the guild in requestedGuilds array
     const guildIndex = traveler.requestedGuilds.findIndex(
       gld => gld.id.toString() === guild.id.toString() || gld._id.toString() === guild.id.toString()
     );
 
-    // If the guild is found, remove it from requestedGuilds
     if (guildIndex !== -1) {
-      traveler.requestedGuilds.splice(guildIndex, 1); // Remove the guild
+      traveler.requestedGuilds.splice(guildIndex, 1); 
     } else {
       throw new Error('Guild not found in traveler requested guilds.');
     }
 
-    // Save changes to the database
     await Promise.all([guild.save(), traveler.save()]);
 
-    // Fetch the updated traveler and guild
     const updatedTraveler = await User.findById(traveler.id.toString() || traveler._id.toString());
     const updatedGuild = await Guild.findById(guild.id.toString() || guild._id.toString());
 
-    // Return both updated documents
     return { updatedTraveler, updatedGuild };
   } catch (error) {
     console.error('Error accepting traveler to guild:', error);
     throw error;
   }
 }
+
 async function LeavingGuild(guild, traveler) {
   try {
-    // Remove the traveler from the guild's joinedTravelers array
     await Guild.findByIdAndUpdate(
       guild._id,
       { $pull: { joinedTravelers: traveler._id } }
     );
 
-    // Remove the guild from the traveler's guildsJoined array
     await User.findByIdAndUpdate(
       traveler._id,
       { $pull: { guildsJoined: guild._id } }
     );
 
-    console.log(`Traveler with ID ${traveler._id} has left the guild with ID ${guild._id}`);
   } catch (error) {
     console.error('Error removing traveler from guild:', error);
   }
 };
+
 async function UpdateGuidelines(guild, newGuidelines) {
   try {
-    // Update the guild's guidelines with the new guidelines
     guild.guildGuidelines = newGuidelines;
 
-    // Save the updated guild object
     await guild.save();
   } catch (error) {
-    // Log the error and rethrow it to propagate it up
     console.error('Error saving guidelines:', error);
     throw error;
   }
