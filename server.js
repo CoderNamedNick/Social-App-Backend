@@ -48,7 +48,7 @@ const io = require('socket.io')(server, {
 });
 
 // Database connection
-mongoose.connect('mongodb://localhost:27017/Social-App', {
+mongoose.connect('mongodb+srv://CoderNamedNick:Badz1100@atlascluster.1u4qn5c.mongodb.net/', {
   useNewUrlParser: true,
   useUnifiedTopology: true
 })

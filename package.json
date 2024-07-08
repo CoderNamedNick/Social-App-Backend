@@ -2,8 +2,9 @@
   "name": "social-app-backend",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
+    "start": "node server",
     "devStart": "nodemon server.js"
   },
   "author": "",
