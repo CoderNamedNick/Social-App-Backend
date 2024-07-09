@@ -5,7 +5,6 @@ const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const socketIO = require('socket.io');
 const http = require('http');
-require('dotenv').config();
 
 // Import the User and Message models
 const User = require('./Models/User');
@@ -48,7 +47,10 @@ const io = require('socket.io')(server, {
   }
 });
 
+
+
 // Database connection
+require('dotenv').config();
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
