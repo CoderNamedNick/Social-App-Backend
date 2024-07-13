@@ -78,11 +78,8 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
-    // Generate JWT token
-    const token = jwt.sign({ userId: user._id }, 'your_secret_key');
-
     const userWithAdditionalInfo = {
-      id: user._id,
+      id: user.id || user._id,
       username: user.username,
       email: user.email,
       birthDate: user.birthDate,
@@ -103,7 +100,7 @@ router.post('/login', async (req, res) => {
       requestedGuilds: user.requestedGuilds,
     };
 
-    res.status(200).json({ token, user: userWithAdditionalInfo });
+    res.status(200).json({ user: userWithAdditionalInfo });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
